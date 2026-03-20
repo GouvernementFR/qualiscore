@@ -1,0 +1,10 @@
+[project]
+name = "qualiscore-dom"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.14"
+authors = [
+  { name = "Quentin LIENHARDT", email = "quentin.lienhardt@actimage.com" },
+]
+dependencies = ["nodriver>=0.48.1"]
