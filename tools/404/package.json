@@ -1,0 +1,6 @@
+{
+  "name": "404",
+  "dependencies": {
+    "wget-parser": "^2.0.0"
+  }
+}

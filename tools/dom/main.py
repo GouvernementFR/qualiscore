@@ -1,20 +1,22 @@
+import argparse
+import asyncio
 import os
-import random
 import re
+from pathlib import Path
 
-import nodriver as uc
-from constants import DSFR_COMPONENTS, USER_AGENTS
-
-
-async def get_screenshot(page: uc.Tab, url: str):
-    await page.sleep(5)
-    await page.save_screenshot(
-        os.path.join(os.path.dirname(__file__), "..", "..", "data", clean_url(url), "screenshot.png")
-    )
+from camoufox.async_api import AsyncCamoufox
+from constants import DSFR_COMPONENTS
+from playwright.async_api import Page
 
 
-async def get_dsfr(page: uc.Tab):
-    content = await page.get_content()
+async def get_screenshot(page: Page, url: str):
+    await page.wait_for_timeout(2000)
+    screenshot_path = Path(__file__).resolve().parents[2] / "data" / clean_url(url) / "screenshot.png"
+    await page.screenshot(path=screenshot_path)
+
+
+async def get_dsfr(page: Page):
+    content = await page.content()
 
     has_header_brand = bool(re.search(r'class="[^"]*fr-header__brand[^"]*"', content))
 
@@ -29,8 +31,8 @@ async def get_dsfr(page: uc.Tab):
         if not css_file.startswith("http"):
             css_file_url = page.url + css_file if css_file.startswith("/") else page.url + "/" + css_file
 
-        await page.get(css_file_url)
-        css_content = await page.get_content()
+        response = await page.context.request.get(css_file_url)
+        css_content = await response.text()
 
         version = re.findall(r"DSFR\s*v?([\d\.]+)", css_content, re.IGNORECASE)
         if version:
@@ -46,37 +48,22 @@ async def get_dsfr(page: uc.Tab):
     }
 
 
-async def main(url: str, user_agent: str):
-    headless = False
-    if headless:
-        browser_args = [
-            "--ash-host-window-bounds=1920x1080",
-            "--window-size=1920,1080",
-            "--window-position=0,0",
-        ]
-    else:
-        browser_args = [
-            "--start-fullscreen",
-        ]
+async def main(url: str):
+    async with AsyncCamoufox(headless=True) as browser:
+        context = await browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            device_scale_factor=2,
+        )
+        page = await context.new_page()
 
-    browser = await uc.start(
-        browser_executable_path="/usr/bin/brave-browser",
-        browser_args=[
-            f"--user-agent={user_agent}",
-            *browser_args,
-        ],
-        headless=headless,
-    )
+        await page.goto("https://" + url)
 
-    page = await browser.get(url)
+        await get_screenshot(page, url)
 
-    await get_screenshot(page, url)
+        dsfr_info = await get_dsfr(page)
+        print(dsfr_info)
 
-    dsfr_info = await get_dsfr(page)
-    print(dsfr_info)
-
-    await page.close()
-    browser.stop()
+        await context.close()
 
 
 def clean_url(url: str) -> str:
@@ -84,9 +71,12 @@ def clean_url(url: str) -> str:
 
 
 if __name__ == "__main__":
-    crawl_url = "https://www.info.gouv.fr"
-    random_user_agent = random.choice(list(USER_AGENTS))
+    parser = argparse.ArgumentParser(description="Qualiscore CLI")
+    parser.add_argument("url", help="URL to crawl")
+    args = parser.parse_args()
 
-    os.makedirs(os.path.join(os.path.dirname(__file__), "..", "..", "data", clean_url(crawl_url)), exist_ok=True)
+    data_dir = Path(__file__).resolve().parents[2] / "data" / clean_url(args.url)
 
-    uc.loop().run_until_complete(main(crawl_url, random_user_agent))
+    os.makedirs(data_dir, exist_ok=True)
+
+    asyncio.run(main(args.url))
