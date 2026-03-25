@@ -1,3 +1,16 @@
+from pathlib import Path
+
+DATA_PATH = Path(__file__).resolve().parents[2] / "data"
+
+SKIP_LINKS = [
+    "skip link",
+    "skip-link",
+    "skip to content",
+    "aller au contenu",
+    "sauter au contenu",
+    "lien de saut",
+]
+
 # Taken from https://github.com/GouvernementFR/dsfr/blob/main/src/dsfr/analytics/.package.yml
 DSFR_COMPONENTS = [
     "accordion",

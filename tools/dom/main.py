@@ -1,17 +1,18 @@
 import argparse
 import asyncio
+import json
 import re
-from pathlib import Path
+from datetime import date
 
 from bs4 import BeautifulSoup
 from camoufox.async_api import AsyncCamoufox
-from constants import DSFR_COMPONENTS
+from constants import DATA_PATH, DSFR_COMPONENTS, SKIP_LINKS
 from playwright.async_api import Page
 
 
 async def get_screenshot(page: Page, url: str) -> None:
     await page.wait_for_timeout(2000)
-    screenshot_path = Path(__file__).resolve().parents[2] / "data" / clean_url(url) / "screenshot.png"
+    screenshot_path = DATA_PATH / clean_url(url) / "screenshot.png"
     await page.screenshot(path=screenshot_path)
 
 
@@ -54,12 +55,18 @@ async def get_a11y(page: Page):
 
     accessibility_elements = [link for link in links if "accessibilité" in link.text.lower()]
 
+    skip_links = bool(html.select_one(".fr-skiplinks")) or any(t in html.text.lower() for t in SKIP_LINKS)
+
     if not accessibility_elements:
         return {
-            "link": None,
+            "url": None,
             "mention": None,
-            "in_footer": False,
-            "skip_links": False,
+            "in_dsfr_footer": False,
+            "skip_links": skip_links,
+            "cited_law": False,
+            "rgaa_version": None,
+            "rgaa_percentage": None,
+            "rgaa_update_date": None,
         }
 
     accessibility_element = accessibility_elements[0]
@@ -76,13 +83,40 @@ async def get_a11y(page: Page):
 
     in_footer = bool(accessibility_element.find_parent("footer", class_="fr-footer"))
 
-    skip_links = bool(html.select_one(".fr-skiplinks"))
+    await page.goto(link_url)
+
+    a11y_content = await page.content()
+    a11y_html = BeautifulSoup(a11y_content, "html.parser")
+
+    cited_law = "2005-102" in a11y_html.text or "article 47" in a11y_html.text.lower()
+    versions = re.findall(r"RGAA\s*(v|version)?\s*([\d\.]+)", a11y_html.text, re.IGNORECASE)
+    version = versions[0][1].rstrip(".") if versions and versions[0] else None
+    percentages = re.findall(r"[\d\.,]+\s*%", a11y_html.text, re.IGNORECASE)
+    percentage = float(percentages[0].replace("%", "").replace(",", ".")) if percentages and percentages[0] else None
+    if len(percentages) > 1:
+        percentage = max(float(p.replace("%", "").replace(",", ".")) for p in percentages)
+    update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s+([\d\-/]+)", a11y_html.text, re.IGNORECASE)
+    update_date = clean_date(update_dates[0][2]) if update_dates and update_dates[0] else None
+    if update_date:
+        update_date = update_date.strftime("%Y-%m-%d")
+    if len(update_dates) > 1:
+        dates = []
+        for d in update_dates:
+            clean_date_str = clean_date(d[2])
+            if clean_date_str:
+                dates.append(clean_date_str)
+        if dates:
+            update_date = max(dates).strftime("%Y-%m-%d")
 
     return {
-        "link": link_url,
+        "url": link_url,
         "mention": link_mention,
-        "in_footer": in_footer,
+        "in_dsfr_footer": in_footer,
         "skip_links": skip_links,
+        "cited_law": cited_law,
+        "rgaa_version": version,
+        "rgaa_percentage": percentage,
+        "rgaa_update_date": update_date,
     }
 
 
@@ -98,11 +132,13 @@ async def main(url: str) -> None:
 
         await get_screenshot(page, url)
 
-        dsfr_info = await get_dsfr(page)
-        print(dsfr_info)
+        dsfr_data = await get_dsfr(page)
+        write_json("dsfr", dsfr_data, url)
+        print(dsfr_data)
 
-        a11y_info = await get_a11y(page)
-        print(a11y_info)
+        a11y_data = await get_a11y(page)
+        write_json("a11y", a11y_data, url)
+        print(a11y_data)
 
         await context.close()
 
@@ -111,12 +147,26 @@ def clean_url(url: str) -> str:
     return re.sub(r"https?://", "", url).rstrip("/")
 
 
+def clean_date(date_str: str) -> date | None:
+    try:
+        day, month, year = map(int, date_str.replace("-", "/").split("/"))
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def write_json(filename: str, data: dict, url: str) -> None:
+    output_path = DATA_PATH / clean_url(url) / f"{filename}.json"
+    with open(output_path, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=2, ensure_ascii=False)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Qualiscore CLI")
     parser.add_argument("url", help="URL to crawl")
     args = parser.parse_args()
 
-    data_dir = Path(__file__).resolve().parents[2] / "data" / clean_url(args.url)
+    data_dir = DATA_PATH / clean_url(args.url)
 
     data_dir.mkdir(parents=True, exist_ok=True)
 

@@ -30,6 +30,8 @@ def run_tools(requested_tools, requested_urls) -> None:
             result = run_tool(tool, url)
             header = f"[{tool['name']}]{' ' + url if url else ''}".strip()
             print(f"{header}: {result.stdout.strip()}")
+            if result.stderr.strip():
+                print(f"{header} (stderr): {result.stderr.strip()}")
 
 
 if __name__ == "__main__":
