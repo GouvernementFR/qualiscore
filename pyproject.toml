@@ -7,4 +7,10 @@ requires-python = ">=3.14"
 authors = [
   { name = "Quentin LIENHARDT", email = "quentin.lienhardt@actimage.com" },
 ]
-dependencies = ["pyyaml>=6.0.3", "camoufox>=0.4.11"]
+dependencies = [
+  # Runner
+  "pyyaml>=6.0.3",
+  # DOM
+  "camoufox>=0.4.11",
+  "beautifulsoup4>=4.14.3",
+]
