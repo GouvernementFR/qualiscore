@@ -46,6 +46,46 @@ async def get_dsfr(page: Page):
     }
 
 
+async def get_a11y(page: Page):
+    content = await page.content()
+    html = BeautifulSoup(content, "html.parser")
+
+    links = html.find_all("a")
+
+    accessibility_elements = [link for link in links if "accessibilité" in link.text.lower()]
+
+    if not accessibility_elements:
+        return {
+            "link": None,
+            "mention": None,
+            "in_footer": False,
+            "skip_links": False,
+        }
+
+    accessibility_element = accessibility_elements[0]
+    if len(accessibility_elements) > 1:
+        for link in accessibility_elements:
+            if ":" in link.text or "-" in link.text:
+                accessibility_element = link
+                break
+
+    link_url = str(accessibility_element.get("href"))
+    if link_url and not link_url.startswith("http"):
+        link_url = page.url.rstrip("/") + "/" + link_url.lstrip("/")
+    link_mention = accessibility_element.text.strip()
+
+    in_footer = bool(accessibility_element.find_parent("footer", class_="fr-footer"))
+
+    skip_links = bool(html.select_one(".fr-skiplinks"))
+
+    return {
+        "link": link_url,
+        "mention": link_mention,
+        "in_footer": in_footer,
+        "skip_links": skip_links,
+    }
+
+
 async def main(url: str) -> None:
     async with AsyncCamoufox(headless=True) as browser:
         context = await browser.new_context(
@@ -60,6 +100,9 @@ async def main(url: str) -> None:
 
         dsfr_info = await get_dsfr(page)
         print(dsfr_info)
+
+        a11y_info = await get_a11y(page)
+        print(a11y_info)
 
         await context.close()
 
