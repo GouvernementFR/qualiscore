@@ -6,7 +6,7 @@ from datetime import date
 
 from bs4 import BeautifulSoup
 from camoufox.async_api import AsyncCamoufox
-from constants import DATA_PATH, DSFR_COMPONENTS, SKIP_LINKS
+from constants import DATA_PATH, DSFR_COMPONENTS, SKIP_LINKS, TIMEOUT
 from playwright.async_api import Page
 
 
@@ -85,6 +85,8 @@ async def get_a11y(page: Page):
 
     await page.goto(link_url)
 
+    await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+
     a11y_content = await page.content()
     a11y_html = BeautifulSoup(a11y_content, "html.parser")
 
@@ -129,6 +131,8 @@ async def main(url: str) -> None:
         page = await context.new_page()
 
         await page.goto("https://" + url)
+
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
 
         await get_screenshot(page, url)
 

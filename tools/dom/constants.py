@@ -2,6 +2,8 @@ from pathlib import Path
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data"
 
+TIMEOUT = 15 * 1000
+
 SKIP_LINKS = [
     "skip link",
     "skip-link",
