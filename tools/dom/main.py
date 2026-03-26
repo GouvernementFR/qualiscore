@@ -40,10 +40,14 @@ async def get_dsfr(page: Page):
     else:
         version = None
 
+    if not version and has_header_brand:
+        # This is insecure and might be detected by the target website, we keep it as a fallback
+        version = await page.evaluate("mw:window.dsfr?.version")
+
     return {
         "enabled": has_header_brand,
-        "used_components": used_components,
         "version": version,
+        "used_components": used_components,
     }
 
 
@@ -123,7 +127,7 @@ async def get_a11y(page: Page):
 
 
 async def main(url: str) -> None:
-    async with AsyncCamoufox(headless=True) as browser:
+    async with AsyncCamoufox(headless=True, main_world_eval=True) as browser:
         context = await browser.new_context(
             viewport={"width": 1280, "height": 720},
             device_scale_factor=2,
