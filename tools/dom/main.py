@@ -4,15 +4,15 @@ import json
 import re
 from datetime import date
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from camoufox.async_api import AsyncCamoufox
-from constants import DATA_PATH, DSFR_COMPONENTS, SKIP_LINKS, TIMEOUT
+from constants import DATA_PATH, DSFR_COMPONENTS, GDPR_SEARCH, SKIP_LINKS, TIMEOUT
 from playwright.async_api import Page
 
 
-async def get_screenshot(page: Page, url: str) -> None:
+async def get_screenshot(page: Page, domain: str) -> None:
     await page.wait_for_timeout(2000)
-    screenshot_path = DATA_PATH / clean_url(url) / "screenshot.png"
+    screenshot_path = DATA_PATH / domain / "screenshot.png"
     await page.screenshot(path=screenshot_path)
 
 
@@ -21,6 +21,13 @@ async def get_dsfr(page: Page):
     html = BeautifulSoup(content, "html.parser")
 
     has_header_brand = bool(html.select_one(".fr-header__brand"))
+
+    if not has_header_brand:
+        return {
+            "enabled": False,
+            "version": None,
+            "used_components": {},
+        }
 
     used_components = {f"fr-{component}": bool(html.select_one(f".fr-{component}")) for component in DSFR_COMPONENTS}
 
@@ -40,7 +47,7 @@ async def get_dsfr(page: Page):
     else:
         version = None
 
-    if not version and has_header_brand:
+    if not version:
         # This is insecure and might be detected by the target website, we keep it as a fallback
         version = await page.evaluate("mw:window.dsfr?.version")
 
@@ -51,7 +58,7 @@ async def get_dsfr(page: Page):
     }
 
 
-async def get_a11y(page: Page):
+async def get_a11y(page: Page, base_url: str):
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
@@ -80,10 +87,7 @@ async def get_a11y(page: Page):
                 accessibility_element = link
                 break
 
-    link_url = str(accessibility_element.get("href"))
-    if link_url and not link_url.startswith("http"):
-        link_url = page.url.rstrip("/") + "/" + link_url.lstrip("/")
-    link_mention = accessibility_element.text.strip()
+    link_url, link_mention = get_link_info(accessibility_element, base_url)
 
     in_footer = bool(accessibility_element.find_parent("footer", class_="fr-footer"))
 
@@ -126,7 +130,110 @@ async def get_a11y(page: Page):
     }
 
 
-async def main(url: str) -> None:
+async def get_gdpr(page: Page, base_url: str):
+    content = await page.content()
+    html = BeautifulSoup(content, "html.parser")
+
+    links = html.find_all("a")
+
+    ml_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["ml"])]  # ty:ignore[unsupported-operator]
+
+    pc_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["pc"])]  # ty:ignore[unsupported-operator]
+
+    cgu_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["cgu"])]  # ty:ignore[unsupported-operator]
+
+    if not (ml_elements or pc_elements or cgu_elements):
+        return {
+            "ml_url": None,
+            "ml_mention": None,
+            "ml_matches": [],
+            "ml_missing": [],
+            "pc_url": None,
+            "pc_mention": None,
+            "pc_matches": [],
+            "pc_missing": [],
+            "cgu_url": None,
+            "cgu_mention": None,
+            "cgu_matches": [],
+            "cgu_missing": [],
+        }
+
+    ml_link_url, ml_link_mention, ml_matches, ml_missing = None, None, [], []
+    if ml_elements:
+        ml_link_url, ml_link_mention = get_link_info(ml_elements[0], base_url)
+
+        await page.goto(ml_link_url)
+
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+
+        ml_content = await page.content()
+        ml_html = BeautifulSoup(ml_content, "html.parser")
+
+        for group in GDPR_SEARCH["ml_words"]:
+            for keyword in group:
+                if keyword in ml_html.text.lower():
+                    ml_matches.append(keyword)
+                    break
+            else:
+                ml_missing.append(" (ou) ".join(group))
+
+    pc_link_url, pc_link_mention, pc_matches, pc_missing = None, None, [], []
+    if pc_elements:
+        pc_link_url, pc_link_mention = get_link_info(pc_elements[0], base_url)
+
+        await page.goto(pc_link_url)
+
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+
+        pc_content = await page.content()
+        pc_html = BeautifulSoup(pc_content, "html.parser")
+
+        for group in GDPR_SEARCH["pc_words"]:
+            for keyword in group:
+                if keyword in pc_html.text.lower():
+                    pc_matches.append(keyword)
+                    break
+            else:
+                pc_missing.append(" (ou) ".join(group))
+
+    cgu_link_url, cgu_link_mention, cgu_matches, cgu_missing = None, None, [], []
+    if cgu_elements:
+        cgu_link_url, cgu_link_mention = get_link_info(cgu_elements[0], base_url)
+
+        await page.goto(cgu_link_url)
+
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+
+        cgu_content = await page.content()
+        cgu_html = BeautifulSoup(cgu_content, "html.parser")
+
+        for group in GDPR_SEARCH["cgu_words"]:
+            for keyword in group:
+                if keyword in cgu_html.text.lower():
+                    cgu_matches.append(keyword)
+                    break
+            else:
+                cgu_missing.append(" (ou) ".join(group))
+
+    return {
+        "ml_url": ml_link_url,
+        "ml_mention": ml_link_mention,
+        "ml_matches": ml_matches,
+        "ml_missing": ml_missing,
+        "pc_url": pc_link_url,
+        "pc_mention": pc_link_mention,
+        "pc_matches": pc_matches,
+        "pc_missing": pc_missing,
+        "cgu_url": cgu_link_url,
+        "cgu_mention": cgu_link_mention,
+        "cgu_matches": cgu_matches,
+        "cgu_missing": cgu_missing,
+    }
+
+
+async def main(domain: str) -> None:
+    base_url = "https://" + domain
+
     async with AsyncCamoufox(headless=True, main_world_eval=True) as browser:
         context = await browser.new_context(
             viewport={"width": 1280, "height": 720},
@@ -134,19 +241,23 @@ async def main(url: str) -> None:
         )
         page = await context.new_page()
 
-        await page.goto("https://" + url)
+        await page.goto(base_url)
 
         await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
 
-        await get_screenshot(page, url)
+        await get_screenshot(page, domain)
 
         dsfr_data = await get_dsfr(page)
-        write_json("dsfr", dsfr_data, url)
+        write_json("dsfr", dsfr_data, domain)
         print(dsfr_data)
 
-        a11y_data = await get_a11y(page)
-        write_json("a11y", a11y_data, url)
+        a11y_data = await get_a11y(page, base_url)
+        write_json("a11y", a11y_data, domain)
         print(a11y_data)
+
+        gdpr_data = await get_gdpr(page, base_url)
+        write_json("gdpr", gdpr_data, domain)
+        print(gdpr_data)
 
         await context.close()
 
@@ -163,8 +274,15 @@ def clean_date(date_str: str) -> date | None:
         return None
 
 
-def write_json(filename: str, data: dict, url: str) -> None:
-    output_path = DATA_PATH / clean_url(url) / f"{filename}.json"
+def get_link_info(element: Tag, base_url: str) -> tuple[str, str]:
+    element_href = str(element.get("href"))
+    if element_href and not element_href.startswith("http"):
+        return (base_url.rstrip("/") + "/" + element_href.lstrip("/"), element.text.strip())
+    return (element_href, element.text.strip())
+
+
+def write_json(filename: str, data: dict, domain: str) -> None:
+    output_path = DATA_PATH / domain / f"{filename}.json"
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
 
@@ -174,8 +292,10 @@ if __name__ == "__main__":
     parser.add_argument("url", help="URL to crawl")
     args = parser.parse_args()
 
-    data_dir = DATA_PATH / clean_url(args.url)
+    base_domain = clean_url(args.url)
+
+    data_dir = DATA_PATH / base_domain
 
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    asyncio.run(main(args.url))
+    asyncio.run(main(base_domain))

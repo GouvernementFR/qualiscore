@@ -4,6 +4,78 @@ DATA_PATH = Path(__file__).resolve().parents[2] / "data"
 
 TIMEOUT = 15 * 1000
 
+GDPR_SEARCH = {
+    "ml": [
+        "mentions légales",
+        "mentions legales",
+        "legal notice",
+    ],
+    "ml_words": [
+        ["directeur", "directrice"],
+        ["publication"],
+        ["hébergeur", "hébergement", "hebergeur", "hebergement"],
+        ["éditeur", "édité par", "editeur", "edite par"],
+        ["concepteur", "conception", "conçu par", "concu par"],
+        ["accessibilité", "accessibilite", "accessible"],
+        ["statistiques", "fréquentation", "frequentation"],
+    ],
+    "pc": [
+        "politique de confidentialité",
+        "politique de confidentialite",
+        "données personnelles",
+        "donnees personnelles",
+        "mentions d'information",
+        "confidentialité",
+        "confidentialite",
+        "privacy policy",
+    ],
+    "pc_words": [
+        [
+            "données personnelles",
+            "donnees personnelles",
+            "données à caractère personnel",
+            "donnees a caractere personnel",
+        ],
+        ["collecte", "collecte de données", "collecte de donnees"],
+        ["utilisation", "utilisation des données", "utilisation des donnees"],
+        ["droits", "droits des utilisateurs", "droits des utilisateurs"],
+        ["@"],
+        ["finalité", "finalite"],
+        [
+            "durée de la conservation",
+            "durées de la conservation",
+            "durée de conservation",
+            "durées de conservation",
+            "duree de la conservation",
+            "durees de la conservation",
+            "duree de conservation",
+            "durees de conservation",
+        ],
+        ["sous-traitant", "sous traitant"],
+    ],
+    "cgu": [
+        "conditions générales d'utilisation",
+        "conditions generales d'utilisation",
+        "conditions d'utilisation",
+        "terms of use",
+        "terms of service",
+    ],
+    "cgu_words": [
+        ["conditions générales d'utilisation", "conditions generales d'utilisation", "conditions d'utilisation", "cgu"],
+        [
+            "modalités d'utilisation",
+            "modalités d'accès",
+            "modalités d'inscription",
+            "modalites d'utilisation",
+            "modalites d'acces",
+            "modalites d'inscription",
+        ],
+        ["responsabilité", "responsabilite"],
+        ["engagement", "engage"],
+        ["propriété intellectuelle", "propriete intellectuelle"],
+    ],
+}
+
 SKIP_LINKS = [
     "skip link",
     "skip-link",
