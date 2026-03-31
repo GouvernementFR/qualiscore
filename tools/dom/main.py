@@ -89,7 +89,7 @@ async def get_a11y(page: Page, base_url: str):
 
     link_url, link_mention = get_link_info(accessibility_element, base_url)
 
-    in_footer = bool(accessibility_element.find_parent("footer", class_="fr-footer"))
+    in_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
 
     await page.goto(link_url)
 
