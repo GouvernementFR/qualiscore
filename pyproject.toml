@@ -13,4 +13,6 @@ dependencies = [
   # DOM
   "camoufox>=0.4.11",
   "beautifulsoup4>=4.14.3",
+  # Lighthouse
+  "playwright>=1.58.0",
 ]
