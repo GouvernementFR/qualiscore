@@ -6,7 +6,7 @@ from datetime import date
 
 from bs4 import BeautifulSoup, Tag
 from camoufox.async_api import AsyncCamoufox
-from constants import DATA_PATH, DSFR_COMPONENTS, GDPR_SEARCH, SKIP_LINKS, TIMEOUT
+from constants import DATA_PATH, DSFR_COMPONENTS, GDPR_SEARCH, SKIP_LINKS, TIMEOUT, TRACKING_TOOLS
 from playwright.async_api import Page
 
 
@@ -231,6 +231,37 @@ async def get_gdpr(page: Page, base_url: str):
     }
 
 
+async def get_tracking(page: Page):
+    await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
+    content = await page.content()
+
+    detected_tools = set()
+    for tool_name, tool_pattern in TRACKING_TOOLS.items():
+        if re.search(tool_pattern, content, re.IGNORECASE):
+            detected_tools.add(tool_name)
+    tac_services = []
+
+    has_tac = re.search(r"(tacjs|tarteaucitron)", content, re.IGNORECASE) is not None
+    has_orejime = re.search(r"orejime", content, re.IGNORECASE) is not None
+
+    if not detected_tools and has_tac:
+        # This is insecure and might be detected by the target website, we keep it as a fallback
+        services = await page.evaluate("mw:window.tarteaucitron?.services")
+        if services:
+            tac_services = list(services.keys())
+            for service in services:
+                if "eulerian" in service.lower():
+                    detected_tools.add("eulerian")
+
+    return {
+        "available": bool(detected_tools),
+        "tools": list(detected_tools),
+        "tac_services": tac_services,
+        "has_tac": has_tac,
+        "has_orejime": has_orejime,
+    }
+
+
 async def main(domain: str) -> None:
     base_url = "https://" + domain
 
@@ -258,6 +289,10 @@ async def main(domain: str) -> None:
         gdpr_data = await get_gdpr(page, base_url)
         write_json("gdpr", gdpr_data, domain)
         print(gdpr_data)
+
+        tracking_data = await get_tracking(page)
+        write_json("tracking", tracking_data, domain)
+        print(tracking_data)
 
         await context.close()
 

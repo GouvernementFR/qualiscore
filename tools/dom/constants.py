@@ -4,6 +4,14 @@ DATA_PATH = Path(__file__).resolve().parents[2] / "data"
 
 TIMEOUT = 15 * 1000
 
+TRACKING_TOOLS = {
+    "eulerian": r"(eulerian|_EA_|eultracker)",
+    "matomo": r"(matomo|_paq)",
+    "piwik": r"piwik",
+    "piano": r"(piano|aticdn|smarttag)",
+    "google-analytics": r"(gtag|google-analytics|googletagmanager|GTM-)",
+}
+
 GDPR_SEARCH = {
     "ml": [
         "mentions légales",
