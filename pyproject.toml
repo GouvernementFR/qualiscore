@@ -15,4 +15,6 @@ dependencies = [
   "beautifulsoup4>=4.14.3",
   # Lighthouse
   "playwright>=1.58.0",
+  # Ecoindex
+  "ecoindex-scraper>=3.15.0",
 ]

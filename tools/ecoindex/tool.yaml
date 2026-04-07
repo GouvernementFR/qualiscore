@@ -1,0 +1,2 @@
+name: ecoindex
+entrypoint: python main.py
