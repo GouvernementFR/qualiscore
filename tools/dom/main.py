@@ -107,8 +107,6 @@ async def get_a11y(page: Page, base_url: str):
         percentage = max(float(p.replace("%", "").replace(",", ".")) for p in percentages)
     update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s+([\d\-/]+)", a11y_html.text, re.IGNORECASE)
     update_date = clean_date(update_dates[0][2]) if update_dates and update_dates[0] else None
-    if update_date:
-        update_date = update_date.strftime("%Y-%m-%d")
     if len(update_dates) > 1:
         dates = []
         for d in update_dates:
@@ -116,7 +114,7 @@ async def get_a11y(page: Page, base_url: str):
             if clean_date_str:
                 dates.append(clean_date_str)
         if dates:
-            update_date = max(dates).strftime("%Y-%m-%d")
+            update_date = max(dates)
 
     return {
         "url": link_url,
@@ -266,7 +264,7 @@ async def main(domain: str) -> None:
     base_url = "https://" + domain
 
     async with AsyncCamoufox(headless=True, main_world_eval=True) as browser:
-        context = await browser.new_context(
+        context = await browser.new_context(  # ty:ignore[unresolved-attribute]
             viewport={"width": 1280, "height": 720},
             device_scale_factor=2,
         )
@@ -311,19 +309,20 @@ def clean_date(date_str: str) -> date | None:
 
 def get_link_info(element: Tag, base_url: str) -> tuple[str, str]:
     element_href = str(element.get("href"))
+    element_text = element.text.strip().replace(" ", " ")
     if element_href and not element_href.startswith("http"):
-        return (base_url.rstrip("/") + "/" + element_href.lstrip("/"), element.text.strip())
-    return (element_href, element.text.strip())
+        return (base_url.rstrip("/") + "/" + element_href.lstrip("/"), element_text)
+    return (element_href, element_text)
 
 
 def write_json(filename: str, data: dict, domain: str) -> None:
     output_path = DATA_PATH / domain / f"{filename}.json"
     with open(output_path, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
+        json.dump(data, file, indent=2, ensure_ascii=False, default=str)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Qualiscore CLI")
+    parser = argparse.ArgumentParser(description="DOM CLI")
     parser.add_argument("url", help="URL to crawl")
     args = parser.parse_args()
 
