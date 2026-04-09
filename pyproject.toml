@@ -10,6 +10,8 @@ authors = [
 dependencies = [
   # Runner
   "pyyaml>=6.0.3",
+  # Registry
+  "niquests>=3.18.4",
   # DOM
   "camoufox>=0.4.11",
   "beautifulsoup4>=4.14.3",
