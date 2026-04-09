@@ -71,10 +71,11 @@ def generate_report(data: dict, tools: list) -> None:
                     site_summary["summary"]["dsfr"] = int(round(score, 0))
                 case "ecoindex":
                     score = results.get("score", 0)
-                    scan_date = results.get("date")
-                    date_fmt = "%Y-%m-%d %H:%M:%S.%f"
                     site_summary["summary"]["ecoindex"] = int(round(score, 0))
-                    site_summary["date"] = datetime.strptime(scan_date, date_fmt).isoformat() if scan_date else None
+                    scan_date = results.get("date")
+                    if scan_date:
+                        date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
+                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
                 case "gdpr":
                     for key in ["ml", "pc", "cgu"]:
                         score = 50 if results.get(f"{key}_url") else 0
@@ -89,13 +90,17 @@ def generate_report(data: dict, tools: list) -> None:
                         site_summary["summary"][f"lighthouse_{category}"] = int(round(score, 0))
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
-                    scan_date = results.get("scan", {}).get("responseHeaders", {}).get("date")
-                    date_fmt = "%a, %d %b %Y %H:%M:%S %Z"
                     site_summary["summary"]["observatory"] = int(round(score, 0))
-                    # Wed, 01 Apr 2026 08:11:51 GMT
-                    site_summary["date"] = datetime.strptime(scan_date, date_fmt).isoformat() if scan_date else None
+                    scan_date = results.get("scan", {}).get("responseHeaders", {}).get("date")
+                    if scan_date:
+                        date_obj = datetime.strptime(scan_date, "%a, %d %b %Y %H:%M:%S %Z")
+                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
                 case "tracking":
                     site_summary["summary"]["tracking"] = results.get("tools")[0] if results.get("tools") else None
+                    scan_date = results.get("date")
+                    if scan_date:
+                        date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
+                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
                 case _:
                     continue
 

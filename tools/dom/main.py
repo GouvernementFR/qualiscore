@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import json
 import re
-from datetime import date
+from datetime import date, datetime
 
 from bs4 import BeautifulSoup, Tag
 from camoufox.async_api import AsyncCamoufox
@@ -257,6 +257,7 @@ async def get_tracking(page: Page):
         "tac_services": tac_services,
         "has_tac": has_tac,
         "has_orejime": has_orejime,
+        "date": datetime.now(),
     }
 
 
