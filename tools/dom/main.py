@@ -134,99 +134,46 @@ async def get_gdpr(page: Page, base_url: str):
 
     links = html.find_all("a")
 
-    ml_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["ml"])]  # ty:ignore[unsupported-operator]
-
-    pc_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["pc"])]  # ty:ignore[unsupported-operator]
-
-    cgu_elements = [link for link in links if any(t in link.text.lower() for t in GDPR_SEARCH["cgu"])]  # ty:ignore[unsupported-operator]
-
-    if not (ml_elements or pc_elements or cgu_elements):
-        return {
-            "ml_url": None,
-            "ml_mention": None,
-            "ml_matches": [],
-            "ml_missing": [],
-            "pc_url": None,
-            "pc_mention": None,
-            "pc_matches": [],
-            "pc_missing": [],
-            "cgu_url": None,
-            "cgu_mention": None,
-            "cgu_matches": [],
-            "cgu_missing": [],
-        }
-
-    ml_link_url, ml_link_mention, ml_matches, ml_missing = None, None, [], []
-    if ml_elements:
-        ml_link_url, ml_link_mention = get_link_info(ml_elements[0], base_url)
-
-        await page.goto(ml_link_url)
-
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
-
-        ml_content = await page.content()
-        ml_html = BeautifulSoup(ml_content, "html.parser")
-
-        for group in GDPR_SEARCH["ml_words"]:
-            for keyword in group:
-                if keyword in ml_html.text.lower():
-                    ml_matches.append(keyword)
-                    break
-            else:
-                ml_missing.append(" (ou) ".join(group))
-
-    pc_link_url, pc_link_mention, pc_matches, pc_missing = None, None, [], []
-    if pc_elements:
-        pc_link_url, pc_link_mention = get_link_info(pc_elements[0], base_url)
-
-        await page.goto(pc_link_url)
-
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
-
-        pc_content = await page.content()
-        pc_html = BeautifulSoup(pc_content, "html.parser")
-
-        for group in GDPR_SEARCH["pc_words"]:
-            for keyword in group:
-                if keyword in pc_html.text.lower():
-                    pc_matches.append(keyword)
-                    break
-            else:
-                pc_missing.append(" (ou) ".join(group))
-
-    cgu_link_url, cgu_link_mention, cgu_matches, cgu_missing = None, None, [], []
-    if cgu_elements:
-        cgu_link_url, cgu_link_mention = get_link_info(cgu_elements[0], base_url)
-
-        await page.goto(cgu_link_url)
-
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
-
-        cgu_content = await page.content()
-        cgu_html = BeautifulSoup(cgu_content, "html.parser")
-
-        for group in GDPR_SEARCH["cgu_words"]:
-            for keyword in group:
-                if keyword in cgu_html.text.lower():
-                    cgu_matches.append(keyword)
-                    break
-            else:
-                cgu_missing.append(" (ou) ".join(group))
-
-    return {
-        "ml_url": ml_link_url,
-        "ml_mention": ml_link_mention,
-        "ml_matches": ml_matches,
-        "ml_missing": ml_missing,
-        "pc_url": pc_link_url,
-        "pc_mention": pc_link_mention,
-        "pc_matches": pc_matches,
-        "pc_missing": pc_missing,
-        "cgu_url": cgu_link_url,
-        "cgu_mention": cgu_link_mention,
-        "cgu_matches": cgu_matches,
-        "cgu_missing": cgu_missing,
+    result: dict = {
+        "ml_url": None,
+        "ml_mention": None,
+        "ml_matches": [],
+        "ml_missing": [],
+        "pc_url": None,
+        "pc_mention": None,
+        "pc_matches": [],
+        "pc_missing": [],
+        "cgu_url": None,
+        "cgu_mention": None,
+        "cgu_matches": [],
+        "cgu_missing": [],
     }
+
+    for key in ["ml", "pc", "cgu"]:
+        elements = [link for link in links if any(str(t) in link.text.lower() for t in GDPR_SEARCH[key])]
+        if not elements:
+            continue
+
+        url, mention = get_link_info(elements[0], base_url)
+        result[f"{key}_url"] = url
+        result[f"{key}_mention"] = mention
+
+        await page.goto(url)
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+
+        page_content = await page.content()
+        page_html = BeautifulSoup(page_content, "html.parser")
+        page_text = clean_text(page_html.text.lower())
+
+        for group in GDPR_SEARCH[f"{key}_words"]:
+            for keyword in group:
+                if keyword in page_text:
+                    result[f"{key}_matches"].append(keyword)
+                    break
+            else:
+                result[f"{key}_missing"].append(" (ou) ".join(group))
+
+    return result
 
 
 async def get_tracking(page: Page):
@@ -300,6 +247,10 @@ def clean_url(url: str) -> str:
     return re.sub(r"https?://", "", url).rstrip("/")
 
 
+def clean_text(text: str) -> str:
+    return text.strip().replace(" ", " ").replace("’", "'")
+
+
 def clean_date(date_str: str) -> date | None:
     try:
         day, month, year = map(int, date_str.replace("-", "/").split("/"))
@@ -310,7 +261,7 @@ def clean_date(date_str: str) -> date | None:
 
 def get_link_info(element: Tag, base_url: str) -> tuple[str, str]:
     element_href = str(element.get("href"))
-    element_text = element.text.strip().replace(" ", " ")
+    element_text = clean_text(element.text)
     if element_href and not element_href.startswith("http"):
         return (base_url.rstrip("/") + "/" + element_href.lstrip("/"), element_text)
     return (element_href, element_text)

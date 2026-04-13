@@ -26,6 +26,7 @@ GDPR_SEARCH = {
         ["concepteur", "conception", "conçu par", "concu par"],
         ["accessibilité", "accessibilite", "accessible"],
         ["statistiques", "fréquentation", "frequentation"],
+        ["contact", "écrire", "@"],
     ],
     "pc": [
         "politique de confidentialité",
@@ -46,8 +47,7 @@ GDPR_SEARCH = {
         ],
         ["collecte", "collecte de données", "collecte de donnees"],
         ["utilisation", "utilisation des données", "utilisation des donnees"],
-        ["droits", "droits des utilisateurs", "droits des utilisateurs"],
-        ["@"],
+        ["droits", "droits des utilisateurs", "droits des personnes"],
         ["finalité", "finalite"],
         [
             "durée de la conservation",
@@ -59,7 +59,8 @@ GDPR_SEARCH = {
             "duree de conservation",
             "durees de conservation",
         ],
-        ["sous-traitant", "sous traitant"],
+        ["sous-traitant", "sous traitant", "sous-traitance", "sous traitance"],
+        ["contact", "écrire", "@"],
     ],
     "cgu": [
         "conditions générales d'utilisation",
