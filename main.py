@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from registry import discover_data, discover_tools
 from report import generate_report
@@ -14,9 +15,6 @@ def run_tools(requested_tools: list, requested_urls: list, all_tools: dict) -> N
             selected.append(all_tools[tool_name])
     else:
         selected = list(all_tools.values())
-
-    if not requested_urls:
-        requested_urls = [""]
 
     for tool in selected:
         for url in requested_urls:
@@ -50,8 +48,12 @@ if __name__ == "__main__":
         "--url",
         "-u",
         action="append",
-        required=True,
         help="URL target; repeatable",
+    )
+    parser_run.add_argument(
+        "--urls-file",
+        "-U",
+        help="Path to a text file containing URLs, one per line",
     )
 
     parser_report = subparsers.add_parser(
@@ -66,8 +68,24 @@ if __name__ == "__main__":
         for name in sorted(tools):
             print(name)
     elif args.command == "run":
+        urls = args.url or []
+        if args.urls_file:
+            urls_file_path = Path(args.urls_file)
+            if not urls_file_path.exists():
+                parser.error(f"URLs file not found: {args.urls_file}")
+            urls.extend(
+                [line.strip() for line in urls_file_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            )
+
+        if not urls:
+            parser.error("At least one URL is required via --url or --urls-file")
+
+        invalid_urls = [url for url in urls if "." not in url]
+        if invalid_urls:
+            parser.error(f"Invalid URL(s), must contain a dot: {', '.join(invalid_urls)}")
+
         try:
-            run_tools(args.tool, args.url, tools)
+            run_tools(args.tool, urls, tools)
         except ValueError as exc:
             parser.error(str(exc))
     elif args.command == "report":
