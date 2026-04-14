@@ -7,6 +7,7 @@ from datetime import date, datetime
 from bs4 import BeautifulSoup, Tag
 from camoufox.async_api import AsyncCamoufox
 from constants import DATA_PATH, DSFR_COMPONENTS, GDPR_SEARCH, SKIP_LINKS, TIMEOUT, TRACKING_TOOLS
+from models import A11YResult, DSFRResult, GDPRResult, TrackingResult
 from playwright.async_api import Page
 
 
@@ -20,14 +21,10 @@ async def get_dsfr(page: Page):
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
-    has_header_brand = bool(html.select_one(".fr-header__brand"))
+    header_brand = bool(html.select_one(".fr-header__brand"))
 
-    if not has_header_brand:
-        return {
-            "enabled": False,
-            "version": None,
-            "used_components": {},
-        }
+    if not header_brand:
+        return DSFRResult().to_dict()
 
     used_components = {f"fr-{component}": bool(html.select_one(f".fr-{component}")) for component in DSFR_COMPONENTS}
 
@@ -51,11 +48,11 @@ async def get_dsfr(page: Page):
         # This is insecure and might be detected by the target website, we keep it as a fallback
         version = await page.evaluate("mw:window.dsfr?.version")
 
-    return {
-        "enabled": has_header_brand,
-        "version": version,
-        "used_components": used_components,
-    }
+    return DSFRResult(
+        header_brand=header_brand,
+        version=version,
+        components=used_components,
+    ).to_dict()
 
 
 async def get_a11y(page: Page, base_url: str):
@@ -69,16 +66,7 @@ async def get_a11y(page: Page, base_url: str):
     skip_links = bool(html.select_one(".fr-skiplinks")) or any(t in html.text.lower() for t in SKIP_LINKS)
 
     if not accessibility_elements:
-        return {
-            "url": None,
-            "mention": None,
-            "in_dsfr_footer": False,
-            "skip_links": skip_links,
-            "cited_law": False,
-            "rgaa_version": None,
-            "rgaa_percentage": None,
-            "rgaa_update_date": None,
-        }
+        return A11YResult(skip_links=skip_links).to_dict()
 
     accessibility_element = accessibility_elements[0]
     if len(accessibility_elements) > 1:
@@ -87,11 +75,14 @@ async def get_a11y(page: Page, base_url: str):
                 accessibility_element = link
                 break
 
-    link_url, link_mention = get_link_info(accessibility_element, base_url)
+    url, mention = get_link_info(accessibility_element, base_url)
+
+    if not url:
+        return A11YResult(skip_links=skip_links).to_dict()
 
     in_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
 
-    await page.goto(link_url)
+    await page.goto(url)
 
     await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
 
@@ -116,16 +107,16 @@ async def get_a11y(page: Page, base_url: str):
         if dates:
             update_date = max(dates)
 
-    return {
-        "url": link_url,
-        "mention": link_mention,
-        "in_dsfr_footer": in_footer,
-        "skip_links": skip_links,
-        "cited_law": cited_law,
-        "rgaa_version": version,
-        "rgaa_percentage": percentage,
-        "rgaa_update_date": update_date,
-    }
+    return A11YResult(
+        url=url,
+        mention=mention,
+        in_dsfr_footer=in_footer,
+        skip_links=skip_links,
+        cited_law=cited_law,
+        rgaa_version=version,
+        rgaa_percentage=percentage,
+        rgaa_update_date=update_date,
+    ).to_dict()
 
 
 async def get_gdpr(page: Page, base_url: str):
@@ -134,20 +125,7 @@ async def get_gdpr(page: Page, base_url: str):
 
     links = html.find_all("a")
 
-    result: dict = {
-        "ml_url": None,
-        "ml_mention": None,
-        "ml_matches": [],
-        "ml_missing": [],
-        "pc_url": None,
-        "pc_mention": None,
-        "pc_matches": [],
-        "pc_missing": [],
-        "cgu_url": None,
-        "cgu_mention": None,
-        "cgu_matches": [],
-        "cgu_missing": [],
-    }
+    result = GDPRResult()
 
     for key in ["ml", "pc", "cgu"]:
         elements = [link for link in links if any(str(t) in link.text.lower() for t in GDPR_SEARCH[key])]
@@ -173,7 +151,7 @@ async def get_gdpr(page: Page, base_url: str):
             else:
                 result[f"{key}_missing"].append(" (ou) ".join(group))
 
-    return result
+    return result.to_dict()
 
 
 async def get_tracking(page: Page):
@@ -184,11 +162,11 @@ async def get_tracking(page: Page):
     for tool_name, tool_pattern in TRACKING_TOOLS.items():
         if re.search(tool_pattern, content, re.IGNORECASE):
             detected_tools.add(tool_name)
-    tac_services = []
 
     has_tac = re.search(r"(tacjs|tarteaucitron)", content, re.IGNORECASE) is not None
     has_orejime = re.search(r"orejime", content, re.IGNORECASE) is not None
 
+    tac_services = []
     if not detected_tools and has_tac:
         # This is insecure and might be detected by the target website, we keep it as a fallback
         services = await page.evaluate("mw:window.tarteaucitron?.services")
@@ -198,14 +176,14 @@ async def get_tracking(page: Page):
                 if "eulerian" in service.lower():
                     detected_tools.add("eulerian")
 
-    return {
-        "available": bool(detected_tools),
-        "tools": list(detected_tools),
-        "tac_services": tac_services,
-        "has_tac": has_tac,
-        "has_orejime": has_orejime,
-        "date": datetime.now(),
-    }
+    return TrackingResult(
+        available=bool(detected_tools),
+        tools=list(detected_tools),
+        tac_services=tac_services,
+        has_tac=has_tac,
+        has_orejime=has_orejime,
+        date=datetime.now(),
+    ).to_dict()
 
 
 async def main(domain: str) -> None:

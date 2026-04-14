@@ -45,7 +45,7 @@ def generate_report(data: dict, tools: list) -> None:
                     site_summary["summary"]["404_count"] = broken_links
                 case "a11y":
                     score = results.get("rgaa_percentage")
-                    if score is None:
+                    if score is None and results.get("mention"):
                         mention = results.get("mention", "").lower()
                         if "totalement conforme" in mention:
                             score = 100
@@ -58,7 +58,7 @@ def generate_report(data: dict, tools: list) -> None:
                         score = sum(keys) / len(keys) * 100 if keys else 0
                     site_summary["summary"]["a11y"] = int(round(score, 0))
                 case "dsfr":
-                    score = 50 if results.get("enabled") else 0
+                    score = 50 if results.get("header_brand") else 0
                     if f"v{results.get('version')}" in dsfr_versions:
                         index = list(dsfr_versions.keys()).index(f"v{results.get('version')}")
                         # the more recent the version, the higher the score (max 50 points)
