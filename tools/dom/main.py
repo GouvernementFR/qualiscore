@@ -138,6 +138,9 @@ async def get_gdpr(page: Page, base_url: str):
         result[f"{key}_url"] = url
         result[f"{key}_mention"] = mention
 
+        if not url:
+            continue
+
         await page.goto(url)
         try:
             await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
