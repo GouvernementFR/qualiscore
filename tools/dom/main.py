@@ -12,8 +12,8 @@ from playwright.async_api import Page
 
 
 async def get_screenshot(page: Page, domain: str) -> None:
-    await page.wait_for_timeout(2000)
     screenshot_path = DATA_PATH / domain / "screenshot.png"
+    # await page.wait_for_timeout(2000)
     await page.screenshot(path=screenshot_path)
 
 
@@ -189,10 +189,10 @@ async def get_tracking(page: Page):
 async def main(domain: str) -> None:
     base_url = "https://" + domain
 
-    async with AsyncCamoufox(headless=True, main_world_eval=True) as browser:
+    async with AsyncCamoufox(headless="virtual", main_world_eval=True) as browser:
         context = await browser.new_context(  # ty:ignore[unresolved-attribute]
-            viewport={"width": 1280, "height": 720},
-            device_scale_factor=2,
+            screen={"width": 1280, "height": 720},
+            viewport={"width": 1920, "height": 1080},
         )
         page = await context.new_page()
 
@@ -206,6 +206,10 @@ async def main(domain: str) -> None:
             await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
         except Exception:
             await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
+
+        data_dir = DATA_PATH / domain
+
+        data_dir.mkdir(parents=True, exist_ok=True)
 
         await get_screenshot(page, domain)
 
@@ -264,9 +268,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     base_domain = clean_url(args.url)
-
-    data_dir = DATA_PATH / base_domain
-
-    data_dir.mkdir(parents=True, exist_ok=True)
 
     asyncio.run(main(base_domain))
