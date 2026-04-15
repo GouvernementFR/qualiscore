@@ -83,8 +83,10 @@ async def get_a11y(page: Page, base_url: str):
     in_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
 
     await page.goto(url)
-
-    await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+    try:
+        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+    except Exception:
+        await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
 
     a11y_content = await page.content()
     a11y_html = BeautifulSoup(a11y_content, "html.parser")
@@ -137,7 +139,10 @@ async def get_gdpr(page: Page, base_url: str):
         result[f"{key}_mention"] = mention
 
         await page.goto(url)
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+        try:
+            await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+        except Exception:
+            await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
 
         page_content = await page.content()
         page_html = BeautifulSoup(page_content, "html.parser")
@@ -155,7 +160,6 @@ async def get_gdpr(page: Page, base_url: str):
 
 
 async def get_tracking(page: Page):
-    await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
     content = await page.content()
 
     detected_tools = set()
@@ -198,7 +202,10 @@ async def main(domain: str) -> None:
 
         await page.goto(base_url)
 
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+        try:
+            await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
+        except Exception:
+            await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
 
         await get_screenshot(page, domain)
 
