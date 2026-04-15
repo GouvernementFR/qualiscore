@@ -32,7 +32,9 @@ def run_tools(requested_tools: list, requested_urls: list, all_tools: dict) -> N
         results = executor.map(lambda pair: run_tool(*pair), tasks)
         for (tool, url), (result, duration) in zip(tasks, results, strict=False):
             header = f"[{tool['name']}]" + (f" {url}" if url else "")
-            message = f"{header}: {result.stdout.strip()} (took {duration}s)"
-            print(message)
-            if result.stderr.strip():
-                print(f"{header} (stderr): {result.stderr.strip()}")
+            for line in result.stdout.splitlines():
+                print(f"{header} {line}")
+            if result.stderr:
+                for line in result.stderr.splitlines():
+                    print(f"{header} ERROR: {line}")
+            print(f"{header} completed in {duration}s")

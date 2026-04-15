@@ -7,7 +7,7 @@ function clean_url() {
 	echo "$url"
 }
 
-echo $1
+echo "Starting MDN HTTP Observatory scan"
 
 URL=$(clean_url "$1")
 

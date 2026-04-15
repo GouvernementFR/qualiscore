@@ -7,7 +7,7 @@ function clean_url() {
 	echo "$url"
 }
 
-echo $1
+echo "Starting Lighthouse scan"
 
 URL=$(clean_url "$1")
 export CHROME_PATH=$(python -c """

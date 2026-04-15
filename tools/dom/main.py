@@ -215,19 +215,19 @@ async def main(domain: str) -> None:
 
         dsfr_data = await get_dsfr(page)
         write_json("dsfr", dsfr_data, domain)
-        print(dsfr_data)
+        print("DSFR", dsfr_data)
 
         a11y_data = await get_a11y(page, base_url)
         write_json("a11y", a11y_data, domain)
-        print(a11y_data)
+        print("A11Y", a11y_data)
 
         gdpr_data = await get_gdpr(page, base_url)
         write_json("gdpr", gdpr_data, domain)
-        print(gdpr_data)
+        print("GDPR", gdpr_data)
 
         tracking_data = await get_tracking(page)
         write_json("tracking", tracking_data, domain)
-        print(tracking_data)
+        print("Tracking", tracking_data)
 
         await context.close()
 

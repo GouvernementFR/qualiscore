@@ -7,7 +7,7 @@ function clean_url() {
 	echo "$url"
 }
 
-echo $1
+echo "Starting 404 crawl"
 
 URL=$(clean_url "$1")
 
