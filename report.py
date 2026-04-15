@@ -53,9 +53,8 @@ def generate_report(data: dict, tools: list) -> None:
                             score = 50
                         elif "non conforme" in mention:
                             score = 0
-                    if score is None:
-                        keys = [bool(results.get(v)) for k, v in results.items() if k != "rgaa_percentage"]
-                        score = sum(keys) / len(keys) * 100 if keys else 0
+                    if not score:
+                        score = 0
                     site_summary["summary"]["a11y"] = int(round(score, 0))
                 case "dsfr":
                     score = 50 if results.get("header_brand") else 0

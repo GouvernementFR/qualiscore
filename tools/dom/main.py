@@ -80,7 +80,7 @@ async def get_a11y(page: Page, base_url: str):
     if not url:
         return A11YResult(skip_links=skip_links).to_dict()
 
-    in_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
+    in_dsfr_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
 
     await page.goto(url)
     try:
@@ -90,15 +90,19 @@ async def get_a11y(page: Page, base_url: str):
 
     a11y_content = await page.content()
     a11y_html = BeautifulSoup(a11y_content, "html.parser")
+    if url.endswith(".pdf"):
+        a11y_html = a11y_html.find(id="viewer") or a11y_html
+        # TODO wait for PDF to be fully loaded (only first page is loaded at the beginning)
 
     cited_law = "2005-102" in a11y_html.text or "article 47" in a11y_html.text.lower()
-    versions = re.findall(r"RGAA\s*(v|version)?\s*([\d\.]+)", a11y_html.text, re.IGNORECASE)
+    versions = re.findall(r"RGAA\s+(v|version)?\s*([\d\.]+)", a11y_html.text, re.IGNORECASE)
     version = versions[0][1].rstrip(".") if versions and versions[0] else None
     percentages = re.findall(r"[\d\.,]+\s*%", a11y_html.text, re.IGNORECASE)
+    percentages = [p for p in percentages if float(p.replace("%", "").replace(",", ".")) <= 100]
     percentage = float(percentages[0].replace("%", "").replace(",", ".")) if percentages and percentages[0] else None
     if len(percentages) > 1:
         percentage = max(float(p.replace("%", "").replace(",", ".")) for p in percentages)
-    update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s+([\d\-/]+)", a11y_html.text, re.IGNORECASE)
+    update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s*([\d\-/]+)", a11y_html.text, re.IGNORECASE)
     update_date = clean_date(update_dates[0][2]) if update_dates and update_dates[0] else None
     if len(update_dates) > 1:
         dates = []
@@ -112,7 +116,7 @@ async def get_a11y(page: Page, base_url: str):
     return A11YResult(
         url=url,
         mention=mention,
-        in_dsfr_footer=in_footer,
+        in_dsfr_footer=in_dsfr_footer,
         skip_links=skip_links,
         cited_law=cited_law,
         rgaa_version=version,
@@ -225,7 +229,7 @@ async def main(domain: str) -> None:
 
 
 def clean_url(url: str) -> str:
-    return re.sub(r"https?://", "", url).rstrip("/")
+    return re.sub(r"https?://", "", url).split("/")[0].lower()
 
 
 def clean_text(text: str) -> str:
