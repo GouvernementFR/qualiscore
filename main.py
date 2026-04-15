@@ -3,27 +3,7 @@ from pathlib import Path
 
 from registry import discover_data, discover_tools
 from report import generate_report
-from runner import run_tool
-
-
-def run_tools(requested_tools: list, requested_urls: list, all_tools: dict) -> None:
-    if requested_tools:
-        selected = []
-        for tool_name in requested_tools:
-            if tool_name not in all_tools:
-                raise ValueError(f"Tool not found: {tool_name}")
-            selected.append(all_tools[tool_name])
-    else:
-        selected = list(all_tools.values())
-
-    for tool in selected:
-        for url in requested_urls:
-            result = run_tool(tool, url)
-            header = f"[{tool['name']}]{' ' + url if url else ''}".strip()
-            print(f"{header}: {result.stdout.strip()}")
-            if result.stderr.strip():
-                print(f"{header} (stderr): {result.stderr.strip()}")
-
+from runner import run_tools
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Qualiscore CLI")
