@@ -170,20 +170,9 @@ async def get_tracking(page: Page):
     has_tac = re.search(r"(tacjs|tarteaucitron)", content, re.IGNORECASE) is not None
     has_orejime = re.search(r"orejime", content, re.IGNORECASE) is not None
 
-    tac_services = []
-    if not detected_tools and has_tac:
-        # This is insecure and might be detected by the target website, we keep it as a fallback
-        services = await page.evaluate("mw:window.tarteaucitron?.services")
-        if services:
-            tac_services = list(services.keys())
-            for service in services:
-                if "eulerian" in service.lower():
-                    detected_tools.add("eulerian")
-
     return TrackingResult(
         available=bool(detected_tools),
         tools=list(detected_tools),
-        tac_services=tac_services,
         has_tac=has_tac,
         has_orejime=has_orejime,
         date=datetime.now(),

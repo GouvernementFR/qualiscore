@@ -58,7 +58,6 @@ class GDPRResult(ResultBase):
 class TrackingResult(ResultBase):
     available: bool = False
     tools: list[str] = field(default_factory=list)
-    tac_services: list[str] = field(default_factory=list)
     has_tac: bool = False
     has_orejime: bool = False
     date: datetime | None = None
