@@ -192,7 +192,11 @@ async def main(domain: str) -> None:
         )
         page = await context.new_page()
 
-        await page.goto(base_url)
+        try:
+            await page.goto(base_url)
+        except Exception as e:
+            print(f"Error navigating: {str(e).replace('\n', ' ')}")
+            return
 
         try:
             await page.wait_for_load_state("networkidle", timeout=TIMEOUT)
