@@ -7,14 +7,14 @@ from registry import retrieve_dsfr_versions
 
 def get_dsfr_versions() -> dict:
     if Path("data/dsfr_versions.json").exists():
-        with open("data/dsfr_versions.json", encoding="utf-8") as file:
+        with Path("data/dsfr_versions.json").open(encoding="utf-8") as file:
             versions = json.load(file)
             if date.fromisoformat(versions["fetched_at"]) >= date.today() - timedelta(days=30):
                 return versions["versions"]
 
     print("DSFR versions data not found or outdated, fetching latest versions...")
     versions = retrieve_dsfr_versions()
-    with open("data/dsfr_versions.json", "w", encoding="utf-8") as file:
+    with Path("data/dsfr_versions.json").open("w", encoding="utf-8") as file:
         json.dump(versions, file, indent=2, ensure_ascii=False, default=str)
 
     return versions["versions"]
@@ -112,5 +112,5 @@ def generate_report(data: dict, tools: list) -> None:
 
         report.append(site_summary)
 
-    with open("data/report.json", "w", encoding="utf-8") as report_file:
+    with Path("data/report.json").open("w", encoding="utf-8") as report_file:
         json.dump(report, report_file, indent=2, ensure_ascii=False, default=str)

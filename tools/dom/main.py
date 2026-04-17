@@ -3,10 +3,18 @@ import asyncio
 import json
 import re
 from datetime import date, datetime
+from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
 from camoufox.async_api import AsyncCamoufox
-from constants import DATA_PATH, DSFR_COMPONENTS, GDPR_SEARCH, SKIP_LINKS, TIMEOUT, TRACKING_TOOLS
+from constants import (
+    DATA_PATH,
+    DSFR_COMPONENTS,
+    GDPR_SEARCH,
+    SKIP_LINKS,
+    TIMEOUT,
+    TRACKING_TOOLS,
+)
 from models import A11YResult, DSFRResult, GDPRResult, TrackingResult
 from playwright.async_api import Page
 
@@ -17,7 +25,7 @@ async def get_screenshot(page: Page, domain: str) -> None:
     await page.screenshot(path=screenshot_path)
 
 
-async def get_dsfr(page: Page):
+async def get_dsfr(page: Page) -> dict:
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
@@ -55,7 +63,7 @@ async def get_dsfr(page: Page):
     ).to_dict()
 
 
-async def get_a11y(page: Page, base_url: str):
+async def get_a11y(page: Page, base_url: str) -> dict:
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
@@ -125,7 +133,7 @@ async def get_a11y(page: Page, base_url: str):
     ).to_dict()
 
 
-async def get_gdpr(page: Page, base_url: str):
+async def get_gdpr(page: Page, base_url: str) -> dict:
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
@@ -166,7 +174,7 @@ async def get_gdpr(page: Page, base_url: str):
     return result.to_dict()
 
 
-async def get_tracking(page: Page):
+async def get_tracking(page: Page) -> dict:
     content = await page.content()
 
     detected_tools = set()
@@ -258,7 +266,7 @@ def get_link_info(element: Tag, base_url: str) -> tuple[str, str]:
 
 def write_json(filename: str, data: dict, domain: str) -> None:
     output_path = DATA_PATH / domain / f"{filename}.json"
-    with open(output_path, "w", encoding="utf-8") as file:
+    with Path(output_path).open("w", encoding="utf-8") as file:
         json.dump(data, file, indent=2, ensure_ascii=False, default=str)
 
 

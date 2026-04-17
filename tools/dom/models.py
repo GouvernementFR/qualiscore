@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
+from typing import Any
 
 
 @dataclass
@@ -7,16 +8,18 @@ class ResultBase:
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key in type(self).__annotations__:
             setattr(self, key, value)
         else:
-            raise KeyError(f"{key} is not a valid field of {self.__class__.__name__}")
+            msg = f"{key} is not a valid field of {self.__class__.__name__}"
+            raise KeyError(msg)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         if key in type(self).__annotations__:
             return getattr(self, key)
-        raise KeyError(f"{key} is not a valid field of {self.__class__.__name__}")
+        msg = f"{key} is not a valid field of {self.__class__.__name__}"
+        raise KeyError(msg)
 
 
 @dataclass

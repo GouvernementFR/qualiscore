@@ -8,7 +8,7 @@ from ecoindex.exceptions.scraper import EcoindexScraperStatusException
 from ecoindex.scraper import EcoindexScraper
 
 
-async def main(domain: str):
+async def main(domain: str) -> None:
     base_url = "https://" + domain
     scraper = EcoindexScraper(url=base_url)
 
@@ -28,7 +28,7 @@ def clean_url(url: str) -> str:
 
 def write_json(filename: str, data: dict, domain: str) -> None:
     output_path = DATA_PATH / domain / f"{filename}.json"
-    with open(output_path, "w", encoding="utf-8") as file:
+    with Path(output_path).open("w", encoding="utf-8") as file:
         json.dump(data, file, indent=2, ensure_ascii=False, default=str)
 
 
