@@ -108,7 +108,11 @@ def generate_report(data: dict, tools: list) -> None:
         for tool in tools:
             if tool not in available_tools:
                 print(f"  [⨯] {tool} (no data)")
-                site_summary["summary"][tool] = None
+                if tool == "lighthouse":
+                    for key in ["performance", "accessibility", "best-practices", "seo"]:
+                        site_summary["summary"][f"lighthouse_{key}"] = None
+                else:
+                    site_summary["summary"][tool] = None
 
         report.append(site_summary)
 
