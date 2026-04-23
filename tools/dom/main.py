@@ -15,7 +15,7 @@ from constants import (
     TIMEOUT,
     TRACKING_TOOLS,
 )
-from models import A11YResult, DSFRResult, GDPRResult, TrackingResult
+from models import DSFRResult, GDPRResult, RGAAResult, TrackingResult
 from playwright.async_api import Page
 
 
@@ -63,7 +63,7 @@ async def get_dsfr(page: Page) -> dict:
     ).to_dict()
 
 
-async def get_a11y(page: Page, base_url: str) -> dict:
+async def get_rgaa(page: Page, base_url: str) -> dict:
     content = await page.content()
     html = BeautifulSoup(content, "html.parser")
 
@@ -74,7 +74,7 @@ async def get_a11y(page: Page, base_url: str) -> dict:
     skip_links = bool(html.select_one(".fr-skiplinks")) or any(t in html.text.lower() for t in SKIP_LINKS)
 
     if not accessibility_elements:
-        return A11YResult(skip_links=skip_links).to_dict()
+        return RGAAResult(skip_links=skip_links).to_dict()
 
     accessibility_element = accessibility_elements[0]
     if len(accessibility_elements) > 1:
@@ -86,7 +86,7 @@ async def get_a11y(page: Page, base_url: str) -> dict:
     url, mention = get_link_info(accessibility_element, base_url)
 
     if not url:
-        return A11YResult(skip_links=skip_links).to_dict()
+        return RGAAResult(skip_links=skip_links).to_dict()
 
     in_dsfr_footer = bool(accessibility_element.find_parent(class_="fr-footer"))
 
@@ -96,21 +96,21 @@ async def get_a11y(page: Page, base_url: str) -> dict:
     except Exception:
         await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUT)
 
-    a11y_content = await page.content()
-    a11y_html = BeautifulSoup(a11y_content, "html.parser")
+    rgaa_content = await page.content()
+    rgaa_html = BeautifulSoup(rgaa_content, "html.parser")
     if url.endswith(".pdf"):
-        a11y_html = a11y_html.find(id="viewer") or a11y_html
+        rgaa_html = rgaa_html.find(id="viewer") or rgaa_html
         # TODO wait for PDF to be fully loaded (only first page is loaded at the beginning)
 
-    cited_law = "2005-102" in a11y_html.text or "article 47" in a11y_html.text.lower()
-    versions = re.findall(r"RGAA\s+(v|version)?\s*([\d\.]+)", a11y_html.text, re.IGNORECASE)
+    cited_law = "2005-102" in rgaa_html.text or "article 47" in rgaa_html.text.lower()
+    versions = re.findall(r"RGAA\s+(v|version)?\s*([\d\.]+)", rgaa_html.text, re.IGNORECASE)
     version = versions[0][1].rstrip(".") if versions and versions[0] else None
-    percentages = re.findall(r"[\d\.,]+\s*%", a11y_html.text, re.IGNORECASE)
+    percentages = re.findall(r"[\d\.,]+\s*%", rgaa_html.text, re.IGNORECASE)
     percentages = [p for p in percentages if float(p.replace("%", "").replace(",", ".")) <= 100]
     percentage = float(percentages[0].replace("%", "").replace(",", ".")) if percentages and percentages[0] else None
     if len(percentages) > 1:
         percentage = max(float(p.replace("%", "").replace(",", ".")) for p in percentages)
-    update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s*([\d\-/]+)", a11y_html.text, re.IGNORECASE)
+    update_dates = re.findall(r"(mise\s+[àa]\s+jour|[ée]tablie)\s+(du|le)?\s*([\d\-/]+)", rgaa_html.text, re.IGNORECASE)
     update_date = clean_date(update_dates[0][2]) if update_dates and update_dates[0] else None
     if len(update_dates) > 1:
         dates = []
@@ -121,7 +121,7 @@ async def get_a11y(page: Page, base_url: str) -> dict:
         if dates:
             update_date = max(dates)
 
-    return A11YResult(
+    return RGAAResult(
         url=url,
         mention=mention,
         in_dsfr_footer=in_dsfr_footer,
@@ -225,9 +225,9 @@ async def main(domain: str) -> None:
         write_json("dsfr", dsfr_data, domain)
         print("DSFR", dsfr_data)
 
-        a11y_data = await get_a11y(page, base_url)
-        write_json("a11y", a11y_data, domain)
-        print("A11Y", a11y_data)
+        rgaa_data = await get_rgaa(page, base_url)
+        write_json("rgaa", rgaa_data, domain)
+        print("RGAA", rgaa_data)
 
         gdpr_data = await get_gdpr(page, base_url)
         write_json("gdpr", gdpr_data, domain)

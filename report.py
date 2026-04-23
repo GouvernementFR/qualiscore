@@ -43,7 +43,7 @@ def generate_report(data: dict, tools: list) -> None:
                     score = (1 - broken_links / total_links) * 100 if total_links else 0
                     site_summary["summary"]["404"] = int(round(score, 0))
                     site_summary["summary"]["404_count"] = broken_links
-                case "a11y":
+                case "rgaa":
                     score = results.get("rgaa_percentage")
                     if score is None and results.get("mention"):
                         mention = results.get("mention", "").lower()
@@ -55,7 +55,7 @@ def generate_report(data: dict, tools: list) -> None:
                             score = 0
                     if not score:
                         score = 0
-                    site_summary["summary"]["a11y"] = int(round(score, 0))
+                    site_summary["summary"]["rgaa"] = int(round(score, 0))
                 case "dsfr":
                     score = 50 if results.get("header_brand") else 0
                     if f"v{results.get('version')}" in dsfr_versions:

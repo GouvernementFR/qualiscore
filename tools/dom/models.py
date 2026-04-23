@@ -30,7 +30,7 @@ class DSFRResult(ResultBase):
 
 
 @dataclass
-class A11YResult(ResultBase):
+class RGAAResult(ResultBase):
     url: str | None = None
     mention: str | None = None
     in_dsfr_footer: bool = False
