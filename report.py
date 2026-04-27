@@ -111,6 +111,9 @@ def generate_report(data: dict, tools: list) -> None:
                 if tool == "lighthouse":
                     for key in ["performance", "accessibility", "best-practices", "seo"]:
                         site_summary["summary"][f"lighthouse_{key}"] = None
+                elif tool == "404":
+                    site_summary["summary"]["errors_404"] = None
+                    site_summary["summary"]["errors_404_count"] = None
                 else:
                     site_summary["summary"][tool] = None
 
