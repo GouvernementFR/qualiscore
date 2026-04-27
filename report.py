@@ -37,12 +37,12 @@ def generate_report(data: dict, tools: list) -> None:
             print(f"  [✓] {path.stem}")
             results = json.loads(path.read_text())
             match path.stem:
-                case "404":
+                case "errors_404":
                     total_links = len(results.get("links", []))
                     broken_links = len(results.get("broken", []))
                     score = (1 - broken_links / total_links) * 100 if total_links else 0
-                    site_summary["summary"]["404"] = int(round(score, 0))
-                    site_summary["summary"]["404_count"] = broken_links
+                    site_summary["summary"]["errors_404"] = int(round(score, 0))
+                    site_summary["summary"]["errors_404_count"] = broken_links
                 case "rgaa":
                     score = results.get("rgaa_percentage")
                     if score is None and results.get("mention"):
