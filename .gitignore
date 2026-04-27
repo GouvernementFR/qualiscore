@@ -2,6 +2,9 @@
 .idea/
 .vscode/
 
+# Venv
+.venv/
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -9,6 +12,9 @@ build/
 dist/
 wheels/
 *.egg-info
+
+# Ruff cache
+.ruff_cache/
 
 # Node modules
 node_modules/
