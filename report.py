@@ -1,8 +1,42 @@
 import json
+from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from registry import retrieve_dsfr_versions
+
+SUBTOOLS = {
+    "dom": ["dsfr", "rgaa", "gdpr", "tracking"],
+    "404": ["errors_404"],
+}
+
+
+@dataclass
+class SummaryEntry:
+    dsfr: int | None = None
+    ecoindex: int | None = None
+    errors_404: int | None = None
+    errors_404_count: int | None = None
+    gdpr_cgu: int | None = None
+    gdpr_ml: int | None = None
+    gdpr_pc: int | None = None
+    lighthouse_accessibility: int | None = None
+    lighthouse_best_practices: int | None = None
+    lighthouse_performance: int | None = None
+    lighthouse_seo: int | None = None
+    observatory: int | None = None
+    rgaa: int | None = None
+    tracking: int | None = None
+
+
+@dataclass
+class ReportEntry:
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    url: str
+    date: datetime
+    summary: SummaryEntry
 
 
 def get_dsfr_versions() -> dict:
@@ -25,24 +59,32 @@ def generate_report(data: dict, tools: list) -> None:
     report = []
     for site, paths in data.items():
         print(f"Site: {site}")
-        site_summary = {
-            "url": "https://" + site,
-            "date": None,
-            "summary": {},
-        }
-        available_tools = set()
+
+        site_summary = ReportEntry(
+            url="https://" + site,
+            date=datetime.now().replace(microsecond=0),
+            summary=SummaryEntry(),
+        )
+
+        all_tools = set(tools)
+        for parent, subs in SUBTOOLS.items():
+            if parent in all_tools:
+                all_tools.remove(parent)
+                all_tools.update(subs)
+        found_tools = set()
 
         for path in sorted(paths):
-            available_tools.add(path.stem)
+            found_tools.add(path.stem)
             print(f"  [✓] {path.stem}")
-            results = json.loads(path.read_text())
+            content = path.read_text(encoding="utf-8")
+            results = json.loads(content if content else "{}")
             match path.stem:
                 case "errors_404":
                     total_links = len(results.get("links", []))
                     broken_links = len(results.get("broken", []))
                     score = (1 - broken_links / total_links) * 100 if total_links else 0
-                    site_summary["summary"]["errors_404"] = int(round(score, 0))
-                    site_summary["summary"]["errors_404_count"] = broken_links
+                    site_summary.summary.errors_404 = int(round(score, 0))
+                    site_summary.summary.errors_404_count = broken_links
                 case "rgaa":
                     score = results.get("rgaa_percentage")
                     if score is None and results.get("mention"):
@@ -55,7 +97,7 @@ def generate_report(data: dict, tools: list) -> None:
                             score = 0
                     if not score:
                         score = 0
-                    site_summary["summary"]["rgaa"] = int(round(score, 0))
+                    site_summary.summary.rgaa = int(round(score, 0))
                 case "dsfr":
                     score = 50 if results.get("header_brand") else 0
                     if f"v{results.get('version')}" in dsfr_versions:
@@ -67,14 +109,14 @@ def generate_report(data: dict, tools: list) -> None:
                     else:
                         # small score for using DSFR even if version is unknown or too old
                         score += 5 if results.get("version") else 0
-                    site_summary["summary"]["dsfr"] = int(round(score, 0))
+                    site_summary.summary.dsfr = int(round(score, 0))
                 case "ecoindex":
                     score = results.get("score", 0)
-                    site_summary["summary"]["ecoindex"] = int(round(score, 0))
+                    site_summary.summary.ecoindex = int(round(score, 0))
                     scan_date = results.get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
-                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
+                        site_summary.date = date_obj.replace(microsecond=0)
                 case "gdpr":
                     for key in ["ml", "pc", "cgu"]:
                         score = 50 if results.get(f"{key}_url") else 0
@@ -82,42 +124,32 @@ def generate_report(data: dict, tools: list) -> None:
                         missing = results.get(f"{key}_missing", [])
                         if matches or missing:
                             score += 50 * (len(matches) / (len(matches) + len(missing)))
-                        site_summary["summary"][f"gdpr_{key}"] = int(round(score, 0))
+                        setattr(site_summary.summary, f"gdpr_{key}", int(round(score, 0)))
                 case "lighthouse":
                     for category in results.get("categories", []):
                         score = results["categories"][category]["score"] * 100
-                        site_summary["summary"][f"lighthouse_{category}"] = int(round(score, 0))
+                        setattr(site_summary.summary, f"lighthouse_{category}", int(round(score, 0)))
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
-                    site_summary["summary"]["observatory"] = int(round(score, 0))
+                    site_summary.summary.observatory = int(round(score, 0))
                     scan_date = results.get("scan", {}).get("responseHeaders", {}).get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%a, %d %b %Y %H:%M:%S %Z")
-                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
+                        site_summary.date = date_obj.replace(microsecond=0)
                 case "tracking":
-                    site_summary["summary"]["tracking"] = results.get("tools")[0] if results.get("tools") else None
+                    site_summary.summary.tracking = results.get("tools")[0] if results.get("tools") else None
                     scan_date = results.get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
-                        site_summary["date"] = date_obj.replace(microsecond=0) if scan_date else None
+                        site_summary.date = date_obj.replace(microsecond=0)
                 case _:
                     continue
 
-        if "dsfr" in available_tools:
-            available_tools.add("dom")
-        for tool in tools:
-            if tool not in available_tools:
+        for tool in all_tools:
+            if tool not in found_tools:
                 print(f"  [⨯] {tool} (no data)")
-                if tool == "lighthouse":
-                    for key in ["performance", "accessibility", "best-practices", "seo"]:
-                        site_summary["summary"][f"lighthouse_{key}"] = None
-                elif tool == "404":
-                    site_summary["summary"]["errors_404"] = None
-                    site_summary["summary"]["errors_404_count"] = None
-                else:
-                    site_summary["summary"][tool] = None
 
-        report.append(site_summary)
+        report.append(site_summary.to_dict())
 
     with Path("data/report.json").open("w", encoding="utf-8") as report_file:
         json.dump(report, report_file, indent=2, ensure_ascii=False, default=str)
