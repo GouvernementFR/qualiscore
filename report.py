@@ -133,7 +133,7 @@ def generate_report(data: dict, tools: list) -> None:
                 case "lighthouse":
                     for category in results.get("categories", []):
                         score = results["categories"][category]["score"] * 100
-                        setattr(site_summary.summary, f"lighthouse_{category}", int(round(score, 0)))
+                        setattr(site_summary.summary, f"lighthouse_{category.replace('-', '_')}", int(round(score, 0)))
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
                     site_summary.summary.observatory = int(round(score, 0))
