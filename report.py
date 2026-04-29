@@ -32,7 +32,12 @@ class SummaryEntry:
 @dataclass
 class ReportEntry:
     def to_dict(self) -> dict:
-        return asdict(self)
+        result = asdict(self)
+        result["summary"] = {
+            ("lighthouse_best-practices" if key == "lighthouse_best_practices" else key): value
+            for key, value in result.get("summary", {}).items()
+        }
+        return result
 
     url: str
     date: datetime
