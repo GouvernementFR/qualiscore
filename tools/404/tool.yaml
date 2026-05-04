@@ -1,2 +1,3 @@
 name: "404"
 entrypoint: bash main.sh
+concurrency_factor: 1.5
