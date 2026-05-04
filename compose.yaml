@@ -1,0 +1,9 @@
+services:
+  qualiscore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./data:/app/data
+    command: python main.py
