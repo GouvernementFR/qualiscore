@@ -6,6 +6,24 @@ import time
 from subprocess import CompletedProcess
 
 
+class WeightedSemaphore:
+    def __init__(self, value: float):
+        self._value = float(value)
+        self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
+
+    def acquire(self, amount: float) -> None:
+        with self._condition:
+            while self._value < amount:
+                self._condition.wait()
+            self._value -= amount
+
+    def release(self, amount: float) -> None:
+        with self._condition:
+            self._value += amount
+            self._condition.notify_all()
+
+
 def run_tool(tool: dict, target: str) -> tuple[CompletedProcess, float]:
     cmd = tool["entrypoint"].split() + target.split()
     start = time.perf_counter()
@@ -29,21 +47,28 @@ def run_tools(requested_tools: list, requested_urls: list, all_tools: dict) -> N
         return
 
     max_workers = min(32, (os.cpu_count() or 4) * 2)
-
-    def worker_count(tool: dict) -> int:
-        return int(tool.get("concurrency_factor", 1) * max_workers)
-
-    semaphores = {tool["name"]: threading.Semaphore(worker_count(tool)) for tool in selected}
+    shared_capacity = WeightedSemaphore(float(max_workers))
 
     def run_tool_with_limit(tool: dict, target: str) -> tuple[CompletedProcess, float]:
-        semaphore = semaphores[tool["name"]]
-        with semaphore:
-            print(f"Starting {tool['name']} for {target} (max concurrency: {worker_count(tool)})")
+        concurrency_factor = float(tool.get("concurrency_factor", 1))
+        weight = max(0.1, round(1.0 / concurrency_factor, 1))
+        shared_capacity.acquire(weight)
+        try:
+            current_capacity = round(max_workers - shared_capacity._value, 1)
+            print(
+                f"+ {current_capacity}/{max_workers} running, starting {tool['name']} for {target} (weight: {weight})"
+            )
             return run_tool(tool, target)
+        finally:
+            shared_capacity.release(weight)
+            current_capacity = round(max_workers - shared_capacity._value, 1)
+            print(
+                f"- {current_capacity}/{max_workers} running, finished {tool['name']} for {target} (weight: {weight})"
+            )
 
     tasks = [(tool, url) for url in requested_urls for tool in selected]
 
-    print(f"Running {len(tasks)} tasks with up to {max_workers} concurrent workers...")
+    print(f"Running {len(tasks)} tasks with {max_workers} shared workers...")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         results = executor.map(lambda pair: run_tool_with_limit(pair[0], pair[1]), tasks)
