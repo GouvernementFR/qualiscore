@@ -18,4 +18,4 @@ with sync_playwright() as p:
 """)
 
 mkdir -p ../../data/$URL/
-npx lighthouse --output-path=../../data/$URL/lighthouse.json --output json --chrome-flags="--headless --no-sandbox" "https://$URL"
+npx lighthouse --quiet --output-path=../../data/$URL/lighthouse.json --output json --chrome-flags="--headless --no-sandbox" "https://$URL"
