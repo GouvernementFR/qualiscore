@@ -72,6 +72,47 @@ python main.py report
 
 ---
 
+## Docker
+
+### Build
+
+```bash
+docker compose build
+```
+
+The image is based on `mcr.microsoft.com/playwright/python` and bundles all Python and Node.js dependencies, Camoufox, Chromium, and `wget`.
+
+### Run with Docker Compose (recommended)
+
+`compose.yaml` mounts `./data` into the container so results persist on the host.
+
+```bash
+# Build and start
+docker compose up -d --build
+
+# Run a command (the container exits when done)
+docker compose run --rm qualiscore list
+docker compose run --rm qualiscore run --url example.com
+docker compose run --rm qualiscore run --url example.com --url other.com -t dom -t lighthouse
+docker compose run --rm qualiscore report
+```
+
+### Run with `docker run`
+
+```bash
+# Build the image first
+docker build -t qualiscore .
+
+# Mount the local data/ directory to persist results
+docker run --rm -v "$(pwd)/data:/app/data" qualiscore list
+docker run --rm -v "$(pwd)/data:/app/data" qualiscore run --url example.com
+docker run --rm -v "$(pwd)/data:/app/data" qualiscore report
+```
+
+> The `data/` directory is mounted so that scan results and the generated report are written to the host rather than discarded with the container.
+
+---
+
 ## How it works
 
 ### Tool discovery
