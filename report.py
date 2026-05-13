@@ -132,15 +132,18 @@ def generate_report(data: dict, tools: list) -> None:
                         setattr(site_summary.summary, f"gdpr_{key}", int(round(score, 0)))
                 case "lighthouse":
                     for category in results.get("categories", []):
-                        score = results["categories"][category]["score"] * 100
+                        score = (results["categories"][category]["score"] or 0) * 100
                         setattr(site_summary.summary, f"lighthouse_{category.replace('-', '_')}", int(round(score, 0)))
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
                     site_summary.summary.observatory = int(round(score, 0))
                     scan_date = results.get("scan", {}).get("responseHeaders", {}).get("date")
                     if scan_date:
-                        date_obj = datetime.strptime(scan_date, "%a, %d %b %Y %H:%M:%S %Z")
-                        site_summary.date = date_obj.replace(microsecond=0)
+                        try:
+                            date_obj = datetime.strptime(scan_date, "%a, %d %b %Y %H:%M:%S %Z")
+                            site_summary.date = date_obj.replace(microsecond=0)
+                        except ValueError:
+                            logger.warning("  [⨯] Invalid date format: %s", scan_date)
                 case "tracking":
                     site_summary.summary.tracking = results.get("tools")[0] if results.get("tools") else None
                     scan_date = results.get("date")
