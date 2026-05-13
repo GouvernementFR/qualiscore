@@ -11,12 +11,54 @@ dependencies = [
   # Runner
   "pyyaml>=6.0.3",
   # Registry
-  "niquests>=3.18.4",
+  "niquests>=3.18.8",
   # DOM
   "camoufox>=0.4.11",
   "beautifulsoup4>=4.14.3",
   # Lighthouse
-  "playwright>=1.58.0",
+  "playwright>=1.59.0",
   # Ecoindex
   "ecoindex-scraper>=3.15.0",
+]
+
+[dependency-groups]
+dev-dependencies = ["ruff>=0.15.12"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+  # flake8-bugbear
+  "B",
+  # flake8-comprehensions
+  "C4",
+  # pycodestyle errors
+  "E",
+  # pyflakes
+  "F",
+  # flake8-logging-format
+  "G",
+  # isort
+  "I",
+  # flake8-implicit-str-concat
+  "ISC",
+  # pylint convention
+  "PLC",
+  # pylint errors
+  "PLE",
+  # flake8-simplify
+  "SIM",
+  # pyupgrade
+  "UP",
+  # pycodestyle warnings
+  "W",
+]
+ignore = [
+  # Do not perform function call `Depends` in argument defaults
+  "B008",
+  # Line too long
+  "E501",
+  # Unnecessary dict comprehension
+  "C420",
 ]
