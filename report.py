@@ -3,7 +3,10 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from logger import get_logger
 from registry import retrieve_dsfr_versions
+
+logger = get_logger(__name__)
 
 SUBTOOLS = {
     "dom": ["dsfr", "rgaa", "gdpr", "tracking"],
@@ -51,7 +54,7 @@ def get_dsfr_versions() -> dict:
             if date.fromisoformat(versions["fetched_at"]) >= date.today() - timedelta(days=30):
                 return versions["versions"]
 
-    print("DSFR versions data not found or outdated, fetching latest versions...")
+    logger.info("DSFR versions data not found or outdated, fetching latest versions...")
     versions = retrieve_dsfr_versions()
     with Path("data/dsfr_versions.json").open("w", encoding="utf-8") as file:
         json.dump(versions, file, indent=2, ensure_ascii=False, default=str)
@@ -63,7 +66,7 @@ def generate_report(data: dict, tools: list) -> None:
     dsfr_versions = get_dsfr_versions()
     report = []
     for site, paths in data.items():
-        print(f"Site: {site}")
+        logger.info("Site: %s", site)
 
         site_summary = ReportEntry(
             url="https://" + site,
@@ -80,7 +83,7 @@ def generate_report(data: dict, tools: list) -> None:
 
         for path in sorted(paths):
             found_tools.add(path.stem)
-            print(f"  [✓] {path.stem}")
+            logger.info("  [✓] %s", path.stem)
             content = path.read_text(encoding="utf-8")
             results = json.loads(content if content else "{}")
             match path.stem:
@@ -155,7 +158,7 @@ def generate_report(data: dict, tools: list) -> None:
 
         for tool in all_tools:
             if tool not in found_tools:
-                print(f"  [⨯] {tool} (no data)")
+                logger.warning("  [⨯] %s (no data)", tool)
 
         report.append(site_summary.to_dict())
 

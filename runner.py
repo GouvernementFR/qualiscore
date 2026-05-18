@@ -5,6 +5,10 @@ import threading
 import time
 from subprocess import CompletedProcess
 
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class WeightedSemaphore:
     def __init__(self, value: float):
@@ -55,28 +59,38 @@ def run_tools(requested_tools: list, requested_urls: list, all_tools: dict) -> N
         shared_capacity.acquire(weight)
         try:
             current_capacity = round(max_workers - shared_capacity._value, 1)
-            print(
-                f"+ {current_capacity}/{max_workers} running, starting {tool['name']} for {target} (weight: {weight})"
+            logger.debug(
+                "+ %s/%s running, starting %s for %s (weight: %s)",
+                current_capacity,
+                max_workers,
+                tool["name"],
+                target,
+                weight,
             )
             return run_tool(tool, target)
         finally:
             shared_capacity.release(weight)
             current_capacity = round(max_workers - shared_capacity._value, 1)
-            print(
-                f"- {current_capacity}/{max_workers} running, finished {tool['name']} for {target} (weight: {weight})"
+            logger.debug(
+                "- %s/%s running, finished %s for %s (weight: %s)",
+                current_capacity,
+                max_workers,
+                tool["name"],
+                target,
+                weight,
             )
 
     tasks = [(tool, url) for url in requested_urls for tool in selected]
 
-    print(f"Running {len(tasks)} tasks with {max_workers} shared workers...")
+    logger.info("Running %s tasks with %s shared workers...", len(tasks), max_workers)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         results = executor.map(lambda pair: run_tool_with_limit(pair[0], pair[1]), tasks)
         for (tool, url), (result, duration) in zip(tasks, results, strict=False):
             header = f"[{tool['name']}]" + (f" {url}" if url else "")
             for line in result.stdout.splitlines():
-                print(f"{header} {line}")
+                logger.info("%s %s", header, line)
             if result.stderr:
                 for line in result.stderr.splitlines():
-                    print(f"{header} ERROR: {line}")
-            print(f"{header} completed in {duration}s")
+                    logger.error("%s %s", header, line)
+            logger.info("%s completed in %s s", header, duration)

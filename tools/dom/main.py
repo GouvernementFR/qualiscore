@@ -1,7 +1,9 @@
 import argparse
 import asyncio
 import json
+import logging
 import re
+import sys
 from datetime import date, datetime
 from pathlib import Path
 
@@ -17,6 +19,9 @@ from constants import (
 )
 from models import DSFRResult, GDPRResult, RGAAResult, TrackingResult
 from playwright.async_api import Page
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format="%(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 async def get_screenshot(page: Page, domain: str) -> None:
@@ -207,7 +212,7 @@ async def main(domain: str) -> None:
         try:
             await page.goto(base_url)
         except Exception as e:
-            print(f"Error navigating: {str(e).replace('\n', ' ')}")
+            logger.error("Error navigating: %s", str(e).replace("\n", " "))
             return
 
         try:
@@ -223,19 +228,19 @@ async def main(domain: str) -> None:
 
         dsfr_data = await get_dsfr(page)
         write_json("dsfr", dsfr_data, domain)
-        print("DSFR", dsfr_data)
+        logger.debug("DSFR %s", dsfr_data)
 
         rgaa_data = await get_rgaa(page, base_url)
         write_json("rgaa", rgaa_data, domain)
-        print("RGAA", rgaa_data)
+        logger.debug("RGAA %s", rgaa_data)
 
         gdpr_data = await get_gdpr(page, base_url)
         write_json("gdpr", gdpr_data, domain)
-        print("GDPR", gdpr_data)
+        logger.debug("GDPR %s", gdpr_data)
 
         tracking_data = await get_tracking(page)
         write_json("tracking", tracking_data, domain)
-        print("Tracking", tracking_data)
+        logger.debug("Tracking %s", tracking_data)
 
         await context.close()
 

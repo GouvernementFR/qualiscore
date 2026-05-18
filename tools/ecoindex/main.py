@@ -1,11 +1,16 @@
 import argparse
 import asyncio
 import json
+import logging
 import re
+import sys
 from pathlib import Path
 
 from ecoindex.exceptions.scraper import EcoindexScraperStatusException
 from ecoindex.scraper import EcoindexScraper
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format="%(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 async def main(domain: str) -> None:
@@ -15,11 +20,11 @@ async def main(domain: str) -> None:
     try:
         analysis_data = await scraper.get_page_analysis()
     except EcoindexScraperStatusException:
-        print(f"Error: Unable to retrieve analysis for {base_url}")
+        logger.error("Unable to retrieve analysis for %s", base_url)
         return
 
     write_json("ecoindex", dict(analysis_data), domain)
-    print(analysis_data)
+    logger.debug("%s", analysis_data)
 
 
 def clean_url(url: str) -> str:

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     tools = discover_tools()
     if args.command == "list":
         for name in sorted(tools):
-            print(name)
+            print(f"- {name}")
     elif args.command == "run":
         urls = args.url or []
         if args.urls_file:
