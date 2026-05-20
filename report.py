@@ -62,11 +62,13 @@ def get_dsfr_versions() -> dict:
     return versions["versions"]
 
 
-def generate_report(data: dict, tools: list) -> None:
+def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
     dsfr_versions = get_dsfr_versions()
     report = []
+    logger.info("Generating report for %s sites using tools: %s", len(data), ", ".join(tools))
     for site, paths in data.items():
-        logger.info("Site: %s", site)
+        if verbose:
+            logger.info("Site: %s", site)
 
         site_summary = ReportEntry(
             url="https://" + site,
@@ -83,7 +85,8 @@ def generate_report(data: dict, tools: list) -> None:
 
         for path in sorted(paths):
             found_tools.add(path.stem)
-            logger.info("  [✓] %s", path.stem)
+            if verbose:
+                logger.info("  [✓] %s", path.stem)
             content = path.read_text(encoding="utf-8")
             results = json.loads(content if content else "{}")
             match path.stem:
@@ -156,9 +159,10 @@ def generate_report(data: dict, tools: list) -> None:
                 case _:
                     continue
 
-        for tool in all_tools:
-            if tool not in found_tools:
-                logger.warning("  [⨯] %s (no data)", tool)
+        if verbose:
+            for tool in all_tools:
+                if tool not in found_tools:
+                    logger.warning("  [⨯] %s (no data)", tool)
 
         report.append(site_summary.to_dict())
 

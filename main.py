@@ -40,6 +40,12 @@ if __name__ == "__main__":
         "report",
         help="Generate a report from collected data",
     )
+    parser_report.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output during report generation",
+    )
 
     args = parser.parse_args()
 
@@ -71,4 +77,4 @@ if __name__ == "__main__":
     elif args.command == "report":
         data = discover_data()
         tools = list(tools.keys())
-        generate_report(data, tools)
+        generate_report(data, tools, verbose=args.verbose)
