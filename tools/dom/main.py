@@ -199,6 +199,24 @@ async def get_tracking(page: Page) -> dict:
     ).to_dict()
 
 
+async def collect_and_write(
+    label: str,
+    filename: str,
+    collector,
+    fallback_factory,
+    domain: str,
+    *args,
+) -> None:
+    try:
+        data = await collector(*args)
+    except Exception:
+        logger.exception("Unable to collect %s data for %s", label, domain)
+        data = fallback_factory().to_dict()
+
+    write_json(filename, data, domain)
+    logger.debug("%s %s", label, data)
+
+
 async def main(domain: str) -> None:
     base_url = "https://" + domain
 
@@ -226,21 +244,10 @@ async def main(domain: str) -> None:
 
         await get_screenshot(page, domain)
 
-        dsfr_data = await get_dsfr(page)
-        write_json("dsfr", dsfr_data, domain)
-        logger.debug("DSFR %s", dsfr_data)
-
-        rgaa_data = await get_rgaa(page, base_url)
-        write_json("rgaa", rgaa_data, domain)
-        logger.debug("RGAA %s", rgaa_data)
-
-        gdpr_data = await get_gdpr(page, base_url)
-        write_json("gdpr", gdpr_data, domain)
-        logger.debug("GDPR %s", gdpr_data)
-
-        tracking_data = await get_tracking(page)
-        write_json("tracking", tracking_data, domain)
-        logger.debug("Tracking %s", tracking_data)
+        await collect_and_write("DSFR", "dsfr", get_dsfr, DSFRResult, domain, page)
+        await collect_and_write("RGAA", "rgaa", get_rgaa, RGAAResult, domain, page, base_url)
+        await collect_and_write("GDPR", "gdpr", get_gdpr, GDPRResult, domain, page, base_url)
+        await collect_and_write("Tracking", "tracking", get_tracking, TrackingResult, domain, page)
 
         await context.close()
 
