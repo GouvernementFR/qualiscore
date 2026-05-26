@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/python:v1.59.0
+FROM mcr.microsoft.com/playwright/python:v1.60.0
 
 ENV NODE_VERSION=24
 ENV UV_PYTHON=3.14
@@ -20,10 +20,5 @@ RUN npm install \
     && npm cache clean --force
 
 COPY . .
-
-RUN uv sync --frozen --no-dev
-
-RUN adduser --system --no-create-home qualiscore
-USER qualiscore
 
 ENTRYPOINT ["python", "main.py"]

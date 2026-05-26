@@ -16,13 +16,13 @@ dependencies = [
   "camoufox>=0.4.11",
   "beautifulsoup4>=4.14.3",
   # Lighthouse
-  "playwright>=1.59.0",
+  "playwright>=1.60.0",
   # Ecoindex
-  "ecoindex-scraper>=3.15.0",
+  "ecoindex-scraper>=3.16.0",
 ]
 
 [dependency-groups]
-dev-dependencies = ["ruff>=0.15.12"]
+dev-dependencies = ["ruff>=0.15.14"]
 
 [tool.ruff]
 line-length = 120
