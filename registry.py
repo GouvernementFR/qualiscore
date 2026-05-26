@@ -23,7 +23,7 @@ def discover_data() -> dict:
         if key not in data:
             data[key] = []
         data[key].append(data_file)
-    return data
+    return dict(sorted(data.items()))
 
 
 def retrieve_dsfr_versions() -> dict:
