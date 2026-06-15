@@ -24,6 +24,7 @@ class SummaryEntry:
     gdpr_ml: int | None = None
     gdpr_pc: int | None = None
     lighthouse_accessibility: int | None = None
+    lighthouse_agentic_browsing: int | None = None
     lighthouse_best_practices: int | None = None
     lighthouse_performance: int | None = None
     lighthouse_seo: int | None = None
@@ -37,7 +38,13 @@ class ReportEntry:
     def to_dict(self) -> dict:
         result = asdict(self)
         result["summary"] = {
-            ("lighthouse_best-practices" if key == "lighthouse_best_practices" else key): value
+            (
+                "lighthouse_best-practices"
+                if key == "lighthouse_best_practices"
+                else "lighthouse_agentic-browsing"
+                if key == "lighthouse_agentic_browsing"
+                else key
+            ): value
             for key, value in result.get("summary", {}).items()
         }
         return result
