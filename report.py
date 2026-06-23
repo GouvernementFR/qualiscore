@@ -17,20 +17,31 @@ SUBTOOLS = {
 @dataclass
 class SummaryEntry:
     dsfr: int | None = None
+    dsfr_enabled: bool = False
+    dsfr_version: str | None = None
     ecoindex: int | None = None
+    ecoindex_size: float | None = None
+    ecoindex_requests: int | None = None
     errors_404: int | None = None
     errors_404_count: int | None = None
     gdpr_cgu: int | None = None
+    gdpr_cgu_missing: list | None = None
     gdpr_ml: int | None = None
+    gdpr_ml_missing: list | None = None
     gdpr_pc: int | None = None
+    gdpr_pc_missing: list | None = None
     lighthouse_accessibility: int | None = None
     lighthouse_agentic_browsing: int | None = None
     lighthouse_best_practices: int | None = None
     lighthouse_performance: int | None = None
     lighthouse_seo: int | None = None
     observatory: int | None = None
+    observatory_failed: list | None = None
     rgaa: int | None = None
-    tracking: int | None = None
+    rgaa_percentage: float | None = None
+    rgaa_version: str | None = None
+    rgaa_update_date: date | None = None
+    tracking: str | None = None
 
 
 @dataclass
@@ -104,7 +115,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     site_summary.summary.errors_404 = int(round(score, 0))
                     site_summary.summary.errors_404_count = broken_links
                 case "rgaa":
-                    score = results.get("rgaa_percentage")
+                    score = results.get("percentage")
                     if score is None and results.get("mention"):
                         mention = results.get("mention", "").lower()
                         if "totalement conforme" in mention:
@@ -116,6 +127,9 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     if not score:
                         score = 0
                     site_summary.summary.rgaa = int(round(score, 0))
+                    site_summary.summary.rgaa_percentage = score
+                    site_summary.summary.rgaa_version = results.get("version")
+                    site_summary.summary.rgaa_update_date = results.get("update_date")
                 case "dsfr":
                     score = 50 if results.get("header_brand") else 0
                     if f"v{results.get('version')}" in dsfr_versions:
@@ -128,9 +142,13 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                         # small score for using DSFR even if version is unknown or too old
                         score += 5 if results.get("version") else 0
                     site_summary.summary.dsfr = int(round(score, 0))
+                    site_summary.summary.dsfr_enabled = bool(results.get("header_brand"))
+                    site_summary.summary.dsfr_version = results.get("version")
                 case "ecoindex":
                     score = results.get("score", 0)
                     site_summary.summary.ecoindex = int(round(score, 0))
+                    site_summary.summary.ecoindex_size = results.get("size")
+                    site_summary.summary.ecoindex_requests = results.get("requests")
                     scan_date = results.get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
@@ -143,6 +161,11 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                         if matches or missing:
                             score += 50 * (len(matches) / (len(matches) + len(missing)))
                         setattr(site_summary.summary, f"gdpr_{key}", int(round(score, 0)))
+                        setattr(
+                            site_summary.summary,
+                            f"gdpr_{key}_missing",
+                            [x.split(" (ou) ", 1)[0] for x in missing],
+                        )
                 case "lighthouse":
                     for category in results.get("categories", []):
                         score = (results["categories"][category]["score"] or 0) * 100
@@ -150,6 +173,9 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
                     site_summary.summary.observatory = int(round(score, 0))
+                    site_summary.summary.observatory_failed = [
+                        name for name, results in results.get("tests", {}).items() if not results.get("pass")
+                    ]
                     scan_date = results.get("scan", {}).get("responseHeaders", {}).get("date")
                     if scan_date:
                         try:

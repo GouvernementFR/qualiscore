@@ -36,9 +36,9 @@ class RGAAResult(ResultBase):
     in_dsfr_footer: bool = False
     skip_links: bool = False
     cited_law: bool = False
-    rgaa_version: str | None = None
-    rgaa_percentage: float | None = None
-    rgaa_update_date: date | None = None
+    version: str | None = None
+    percentage: float | None = None
+    update_date: date | None = None
 
 
 @dataclass

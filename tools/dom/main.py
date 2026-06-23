@@ -132,9 +132,9 @@ async def get_rgaa(page: Page, base_url: str) -> dict:
         in_dsfr_footer=in_dsfr_footer,
         skip_links=skip_links,
         cited_law=cited_law,
-        rgaa_version=version,
-        rgaa_percentage=percentage,
-        rgaa_update_date=update_date,
+        version=version,
+        percentage=percentage,
+        update_date=update_date,
     ).to_dict()
 
 
