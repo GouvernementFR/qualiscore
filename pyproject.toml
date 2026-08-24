@@ -11,18 +11,18 @@ dependencies = [
   # Runner
   "pyyaml>=6.0.3",
   # Registry
-  "niquests>=3.19.1",
+  "niquests>=3.21.0",
   # DOM
-  "camoufox>=0.4.11",
+  "camoufox>=0.5.5",
   "beautifulsoup4>=4.15.0",
   # Lighthouse
-  "playwright>=1.60.0",
+  "playwright==1.60.0",
   # Ecoindex
   "ecoindex-scraper>=3.17.0",
 ]
 
 [dependency-groups]
-dev-dependencies = ["ruff>=0.15.16"]
+dev-dependencies = ["ruff>=0.16.4"]
 
 [tool.uv.sources]
 ecoindex-scraper = { git = "https://github.com/Quentium-Forks/EcoIndex_python.git", subdirectory = "projects/ecoindex_scraper", rev = "feat/camoufox" }

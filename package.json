@@ -5,8 +5,8 @@
   "author": "Quentin LIENHARDT",
   "license": "CC-BY-SA-4.0",
   "dependencies": {
-    "@mdn/mdn-http-observatory": "^1.6.2",
-    "lighthouse": "^13.1.0",
+    "@mdn/mdn-http-observatory": "^1.6.3",
+    "lighthouse": "^13.4.1",
     "wget-parser": "^2.0.0"
   }
 }
