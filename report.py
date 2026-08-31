@@ -172,6 +172,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                         setattr(site_summary.summary, f"lighthouse_{category.replace('-', '_')}", int(round(score, 0)))
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
+                    score = (score / 125) * 100
                     site_summary.summary.observatory = int(round(score, 0))
                     site_summary.summary.observatory_failed = [
                         name for name, results in results.get("tests", {}).items() if not results.get("pass")
