@@ -90,7 +90,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
 
         site_summary = ReportEntry(
             url="https://" + site,
-            date=datetime.now().replace(microsecond=0),
+            date=datetime.min,
             summary=SummaryEntry(),
         )
 
@@ -152,7 +152,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     scan_date = results.get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
-                        site_summary.date = date_obj.replace(microsecond=0)
+                        site_summary.date = max(date_obj.replace(microsecond=0), site_summary.date)
                 case "gdpr":
                     for key in ["ml", "pc", "cgu"]:
                         score = 50 if results.get(f"{key}_url") else 0
@@ -173,6 +173,10 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     for category in results.get("categories", []):
                         score = (results["categories"][category]["score"] or 0) * 100
                         setattr(site_summary.summary, f"lighthouse_{category.replace('-', '_')}", int(round(score, 0)))
+                    scan_date = results.get("fetchTime")
+                    if scan_date:
+                        date_obj = datetime.strptime(scan_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        site_summary.date = max(date_obj.replace(microsecond=0), site_summary.date)
                 case "observatory":
                     score = results.get("scan", {}).get("score", 0)
                     score = (score / 125) * 100
@@ -184,7 +188,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     if scan_date:
                         try:
                             date_obj = datetime.strptime(scan_date, "%a, %d %b %Y %H:%M:%S %Z")
-                            site_summary.date = date_obj.replace(microsecond=0)
+                            site_summary.date = max(date_obj.replace(microsecond=0), site_summary.date)
                         except ValueError:
                             logger.warning("  [⨯] Invalid date format: %s", scan_date)
                 case "tracking":
@@ -192,7 +196,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     scan_date = results.get("date")
                     if scan_date:
                         date_obj = datetime.strptime(scan_date, "%Y-%m-%d %H:%M:%S.%f")
-                        site_summary.date = date_obj.replace(microsecond=0)
+                        site_summary.date = max(date_obj.replace(microsecond=0), site_summary.date)
                 case _:
                     continue
 
