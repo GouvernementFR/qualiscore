@@ -18,4 +18,9 @@ with sync_playwright() as p:
 """)
 
 mkdir -p ../../data/$URL/
-npx lighthouse --quiet --output-path=../../data/$URL/lighthouse.json --disable-full-page-screenshot --skip-audits=screenshot-thumbnails,final-screenshot --output json --chrome-flags="--headless --no-sandbox" "https://$URL"
+npx -q lighthouse --quiet --output-path=../../data/$URL/lighthouse.json --disable-full-page-screenshot --skip-audits=screenshot-thumbnails,final-screenshot --output json --chrome-flags="--headless --no-sandbox" "https://$URL"
+
+content=$(cat ../../data/$URL/lighthouse.json)
+if [[ "$content" == *"runtimeError"* ]]; then
+	rm ../../data/$URL/lighthouse.json
+fi

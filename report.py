@@ -167,6 +167,9 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                             [x.split(" (ou) ", 1)[0] for x in missing],
                         )
                 case "lighthouse":
+                    if results.get("runtimeError"):
+                        logger.warning("  [⨯] Lighthouse runtime error for %s", site)
+                        continue
                     for category in results.get("categories", []):
                         score = (results["categories"][category]["score"] or 0) * 100
                         setattr(site_summary.summary, f"lighthouse_{category.replace('-', '_')}", int(round(score, 0)))

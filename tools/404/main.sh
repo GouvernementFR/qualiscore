@@ -18,6 +18,8 @@ OUT=$(timeout --preserve-status --foreground 600 wget -e robots=off --no-check-c
 cd -
 
 mkdir -p ../../data/$URL/
-echo "$OUT" | npx wget-parser > ../../data/$URL/errors_404.json
+if [[ "$OUT" != *"Found no broken links."* && "$OUT" != *"Remote file does not exist"* ]]; then
+	echo "$OUT" | npx -q wget-parser > ../../data/$URL/errors_404.json
+fi
 
 rm -rf $URL/

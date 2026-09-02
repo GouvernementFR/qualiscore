@@ -12,4 +12,9 @@ echo "Starting MDN HTTP Observatory scan"
 URL=$(clean_url "$1")
 
 mkdir -p ../../data/$URL/
-npx mdn-http-observatory-scan "$URL" > ../../data/$URL/observatory.json
+npx -q mdn-http-observatory-scan "$URL" > ../../data/$URL/observatory.json
+
+content=$(cat ../../data/$URL/observatory.json)
+if [[ "$content" == '{"error":"The site seems to be down."}' || "$content" == '{"error":"Site did respond with an unexpected HTTP status code'* ]]; then
+	rm ../../data/$URL/observatory.json
+fi
