@@ -1,72 +1,83 @@
 # Qualiscore
 
-Qualiscore is a CLI tool that audits websites across multiple quality indicators (accessibility, DSFR compliance, eco-design, security, broken links, GDPR) and produces a unified JSON report.
+Qualiscore est un outil en ligne de commande qui audite les sites web selon plusieurs indicateurs de qualité (accessibilité, conformité au DSFR, éco-conception, sécurité, liens brisés, RGPD) et produit un rapport JSON unifié.
 
-## Requirements
+## Contexte
 
-**Python ≥ 3.14** and **Node.js** must be available on the system.
+Le Service d'information du Gouvernement (SIG), service du Premier ministre, est responsable de l'innovation et de la transformation numérique de la communication. À ce titre, il pilote le Système de Design de l'État (DSFR), aujourd'hui déployé sur plus de 2 000 sites publics, instruit les demandes d'agrément des sites de l'État et de leurs URL en .gouv.fr, et veille à la lisibilité comme à la qualité de l'offre numérique de l'État pour les usagers.
 
-### Python dependencies
+La circulaire n° 6411/SG du 7 juillet 2023, relative à l'amélioration de la lisibilité des sites Internet de l'État et de la qualité des démarches numériques, fixe le cadre de cette exigence : identité de l'État, accessibilité, sécurité, protection des données personnelles, éco-conception. Pour en suivre l'application, le SIG cartographie les sites de l'État ouverts au public et mesure régulièrement une série d'indicateurs de qualité.
 
-Install with [uv](https://docs.astral.sh/uv/) or pip:
+Qualiscore est l'outil qui produit cette mesure. Le SIG le publie en logiciel libre pour deux raisons. D'une part, permettre aux administrations d'auditer elles-mêmes les sites que le SIG ne peut pas analyser depuis l'extérieur :
+intranets, extranets, environnements de recette, services derrière authentification. D'autre part, ouvrir le code à celles et ceux qui souhaitent l'améliorer, ajouter des indicateurs ou affiner les méthodes de calcul. En publiant Qualiscore, le SIG contribue aux communs numériques de l'État.
+
+Retrouvez d'ores et déjà la cartographie et les indicateurs des sites publics sur l'outil audience.communication.gouv.fr.
+
+## Prérequis
+
+**Python ≥ 3.14** et **Node.js** doivent être installés sur le système.
+
+### Dépendances Python
+
+Installation avec [uv](https://docs.astral.sh/uv/) ou pip :
 
 ```bash
 uv sync
-# or
+# ou
 pip install -r requirements.txt
 ```
 
-Key Python packages used:
+Principaux paquets Python utilisés :
 
-| Package                       | Used by                                     |
-|-------------------------------|---------------------------------------------|
-| `pyyaml`                      | tool discovery (`registry.py`)              |
-| `niquests`                    | DSFR versions fetch (`registry.py`)         |
-| `camoufox` + `beautifulsoup4` | `dom` tool                                  |
-| `playwright`                  | `dom` tool + Chromium path for `lighthouse` |
-| `ecoindex-scraper`            | `ecoindex` tool                             |
+| Paquet                        | Utilisé par                                     |
+|-------------------------------|-------------------------------------------------|
+| `pyyaml`                      | découverte des outils (`registry.py`)           |
+| `niquests`                    | récupération des versions DSFR (`registry.py`)  |
+| `camoufox` + `beautifulsoup4` | outil `dom`                                     |
+| `playwright`                  | outil `dom` + chemin Chromium pour `lighthouse` |
+| `ecoindex-scraper`            | outil `ecoindex`                                |
 
-After installing Python packages, install the Playwright browsers:
+Après l'installation des paquets Python, installez les navigateurs Playwright :
 
 ```bash
 python -m playwright install chromium
 python -m camoufox fetch
 ```
 
-### Node.js dependencies
+### Dépendances Node.js
 
 ```bash
 npm install
 ```
 
-Provides:
+Installe :
 
-| Package                                                   | Used by            |
-|-----------------------------------------------------------|--------------------|
-| `lighthouse`                                              | `lighthouse` tool  |
-| `@mdn/mdn-http-observatory` (`mdn-http-observatory-scan`) | `observatory` tool |
-| `wget-parser`                                             | `404` tool         |
+| Paquet                                                    | Utilisé par         |
+|-----------------------------------------------------------|---------------------|
+| `lighthouse`                                              | outil `lighthouse`  |
+| `@mdn/mdn-http-observatory` (`mdn-http-observatory-scan`) | outil `observatory` |
+| `wget-parser`                                             | outil `404`         |
 
-The `404` tool also requires `wget` to be installed system-wide.
+L'outil `404` nécessite également que `wget` soit installé sur le système.
 
 ---
 
-## Usage
+## Utilisation
 
 ```bash
-# List available tools
+# Lister les outils disponibles
 python main.py list
 
-# Run all tools against one or more URLs
+# Exécuter tous les outils sur une ou plusieurs URL
 python main.py run --url example.com --url other.com
 
-# Run specific tools only
+# Exécuter uniquement certains outils
 python main.py run -t dom -t lighthouse --url example.com
 
-# Load URLs from a file (one per line)
+# Charger des URL depuis un fichier (une par ligne)
 python main.py run --urls-file urls.txt
 
-# Generate the report from collected data
+# Générer le rapport à partir des données collectées
 python main.py report
 ```
 
@@ -74,153 +85,153 @@ python main.py report
 
 ## Docker
 
-### Build
+### Construction
 
 ```bash
 docker compose build
 ```
 
-The image is based on `mcr.microsoft.com/playwright/python` and bundles all Python and Node.js dependencies, Camoufox, Chromium, and `wget`.
+L'image est basée sur `mcr.microsoft.com/playwright/python` et inclut toutes les dépendances Python et Node.js, Camoufox, Chromium et `wget`.
 
-### Run with Docker Compose (recommended)
+### Exécution avec Docker Compose (recommandé)
 
-`compose.yaml` mounts `./data` into the container so results persist on the host.
+`compose.yaml` monte `./data` dans le conteneur afin que les résultats soient conservés sur l'hôte.
 
 ```bash
-# Build and start
+# Construire et démarrer
 docker compose up -d --build
 
-# Run a command (the container exits when done)
+# Exécuter une commande (le conteneur s'arrête à la fin)
 docker compose run --rm qualiscore list
 docker compose run --rm qualiscore run --url example.com
 docker compose run --rm qualiscore run --url example.com --url other.com -t dom -t lighthouse
 docker compose run --rm qualiscore report
 ```
 
-### Run with `docker run`
+### Exécution avec `docker run`
 
 ```bash
-# Build the image first
+# Construire d'abord l'image
 docker build -t qualiscore .
 
-# Mount the local data/ directory to persist results
+# Monter le répertoire local data/ pour conserver les résultats
 docker run --rm -v "$(pwd)/data:/app/data" qualiscore list
 docker run --rm -v "$(pwd)/data:/app/data" qualiscore run --url example.com
 docker run --rm -v "$(pwd)/data:/app/data" qualiscore report
 ```
 
-> The `data/` directory is mounted so that scan results and the generated report are written to the host rather than discarded with the container.
+> Le répertoire `data/` est monté afin que les résultats d'analyse et le rapport généré soient écrits sur l'hôte, et non perdus à la fermeture du conteneur.
 
 ---
 
-## How it works
+## Fonctionnement
 
-### Tool discovery
+### Découverte des outils
 
-`registry.py` scans the `tools/` directory for sub-directories containing a `tool.yaml` file. Each YAML file declares:
+`registry.py` parcourt le dossier `tools/` à la recherche de sous-répertoires contenant un fichier `tool.yaml`. Chaque fichier YAML déclare :
 
-- `name`: identifier used on the CLI
-- `entrypoint`: command to run (e.g. `bash main.sh`, `python main.py`)
-- `concurrency_factor` *(optional)*: controls how many slots the tool occupies in the shared worker pool (default `1`). Values > 1 mean the tool is lightweight and can run more in parallel; values < 1 (e.g. `0.2` for Lighthouse) mean it is heavy and limits concurrency.
+- `name` : identifiant utilisé en ligne de commande
+- `entrypoint` : commande à exécuter (par exemple `bash main.sh`, `python main.py`)
+- `concurrency_factor` *(facultatif)* : contrôle le nombre de places occupées par l'outil dans le pool partagé de workers (par défaut `1`). Les valeurs > 1 indiquent un outil léger pouvant être exécuté en parallèle davantage ; les valeurs < 1 (par exemple `0.2` pour Lighthouse) indiquent un outil lourd qui limite davantage la concurrence.
 
-### Runner
+### Orchestrateur
 
-`runner.py` builds a task list of `(tool, url)` pairs and executes them concurrently using a `ThreadPoolExecutor`. A weighted semaphore enforces the `concurrency_factor` budget so heavy tools do not overwhelm the machine.
+`runner.py` construit une liste de tâches `(outil, url)` et les exécute en parallèle via `ThreadPoolExecutor`. Un sémaphore pondéré applique le budget `concurrency_factor` afin d'éviter qu'un outil lourd ne surcharge la machine.
 
-Each tool receives the target URL as its first argument and is responsible for writing its output JSON under `data/<hostname>/`.
+Chaque outil reçoit l'URL cible comme premier argument et doit écrire son JSON de sortie dans `data/<hostname>/`.
 
 ---
 
-## Tools
+## Outils
 
-### `404` — Broken link checker
+### `404` — Vérification des liens brisés
 
-**Entrypoint:** `bash main.sh`  
-**Depends on:** `wget` (system), `wget-parser` (npm)
+**Entrypoint :** `bash main.sh`  
+**Dépend de :** `wget` (système), `wget-parser` (npm)
 
-Crawls the site up to 5 levels deep using `wget --spider` and pipes the output through `wget-parser` to produce:
+Parcourt le site jusqu'à 5 niveaux de profondeur avec `wget --spider` puis traite la sortie via `wget-parser` pour produire :
 
 ```json
 { "links": [...], "broken": [...] }
 ```
 
-Output: `data/<host>/errors_404.json`
+Sortie : `data/<host>/errors_404.json`
 
 ---
 
-### `dom` — DOM analysis (DSFR, RGAA, GDPR, tracking)
+### `dom` — Analyse du DOM (DSFR, RGAA, RGPD, suivi)
 
-**Entrypoint:** `python main.py`  
-**Depends on:** `camoufox`, `beautifulsoup4`, `playwright`
+**Entrypoint :** `python main.py`  
+**Dépend de :** `camoufox`, `beautifulsoup4`, `playwright`
 
-Launches a stealth browser (Camoufox) and extracts four datasets from the page:
+Lance un navigateur furtif (Camoufox) et extrait quatre jeux de données depuis la page :
 
-- **DSFR** – detects `.fr-header__brand`, reads version from loaded CSS files or `window.dsfr.version`.
-- **RGAA** – follows the "accessibilité" link, scrapes conformance mention, percentage, RGAA version, and update date.
-- **GDPR** – looks for links matching "mentions légales" (`ml`), "politique de confidentialité" (`pc`), and "CGU" (`cgu`), then scores presence + keyword coverage.
-- **Tracking** – scans inline scripts for fingerprints of Eulerian, Matomo, Piwik, Piano, and Google Analytics.
+- **DSFR** — détecte `.fr-header__brand`, lit la version depuis les fichiers CSS chargés ou `window.dsfr.version`.
+- **RGAA** — suit le lien « accessibilité », récupère la mention de conformité, le pourcentage, la version du RGAA et la date de mise à jour.
+- **RGPD** — recherche les liens correspondant à « mentions légales » (`ml`), « politique de confidentialité » (`pc`) et « CGU » (`cgu`), puis attribue un score selon la présence et la couverture des mots-clés.
+- **Suivi** — analyse les scripts inline à la recherche d'empreintes d'Eulerian, Matomo, Piwik, Piano et Google Analytics.
 
-Outputs: `data/<host>/dsfr.json`, `rgaa.json`, `gdpr.json`, `tracking.json`
-
----
-
-### `ecoindex` — Eco-design score
-
-**Entrypoint:** `python main.py`  
-**Depends on:** `ecoindex-scraper`
-
-Uses `EcoindexScraper` to load the page and compute a score (0–100) based on DOM size, number of requests, and page weight.
-
-Output: `data/<host>/ecoindex.json`
+Sorties : `data/<host>/dsfr.json`, `rgaa.json`, `gdpr.json`, `tracking.json`
 
 ---
 
-### `lighthouse` — Web quality (Lighthouse)
+### `ecoindex` — Score d'éco-conception
 
-**Entrypoint:** `bash main.sh`  
-**Depends on:** `lighthouse` (npm), `playwright` (for the Chromium path)
+**Entrypoint :** `python main.py`  
+**Dépend de :** `ecoindex-scraper`
 
-Locates the Playwright-managed Chromium binary and runs `lighthouse` in headless mode to produce a full JSON report.
+Utilise `EcoindexScraper` pour charger la page et calculer un score (0–100) basé sur la taille du DOM, le nombre de requêtes et le poids de la page.
 
-**Note:** `concurrency_factor: 0.2` — Lighthouse is CPU-intensive; only one instance runs per ~5 worker slots.
-
-Output: `data/<host>/lighthouse.json`
+Sortie : `data/<host>/ecoindex.json`
 
 ---
 
-### `observatory` — HTTP security headers (MDN Observatory)
+### `lighthouse` — Qualité web (Lighthouse)
 
-**Entrypoint:** `bash main.sh`  
-**Depends on:** `@mdn/mdn-http-observatory` (npm)
+**Entrypoint :** `bash main.sh`  
+**Dépend de :** `lighthouse` (npm), `playwright` (pour le chemin Chromium)
 
-Runs `mdn-http-observatory-scan` against the hostname and saves the result.
+Localise le binaire Chromium géré par Playwright et lance `lighthouse` en mode sans tête pour produire un rapport JSON complet.
 
-Output: `data/<host>/observatory.json`
+**Remarque :** `concurrency_factor: 0.2` — Lighthouse consomme beaucoup de CPU ; une seule instance s'exécute environ toutes les 5 places de worker.
 
----
-
-## Report generation
-
-Running `python main.py report` reads all JSON files under `data/` and produces `data/report.json` — a list of per-site entries, each containing a `summary` object.
-
-### Scoring per indicator
-
-| Indicator       | Field(s)                                                                                                                           | How the score (0–100) is computed                                                                                                                                                                                                                                                                                                                                              |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **errors_404**  | `errors_404`, `errors_404_count`                                                                                                   | `(1 − broken/total) × 100`. `errors_404_count` stores the raw broken-link count.                                                                                                                                                                                                                                                                                               |
-| **DSFR**        | `dsfr`                                                                                                                             | 50 pts for having `.fr-header__brand`. Up to 50 additional pts based on DSFR version recency using a soft power-decay curve ($50 \times (1 - (i/N)^{0.8})$, where $i$ is the version index in the sorted release list). 5 pts if a version is detected but unknown/too old. DSFR versions are fetched from the GitHub API and cached in `data/dsfr_versions.json` for 30 days. |
-| **RGAA**        | `rgaa`                                                                                                                             | Uses `percentage` if present. Falls back to keyword matching: "totalement conforme" → 100, "partiellement conforme" → 50, "non conforme" → 0.                                                                                                                                                                                                                                  |
-| **GDPR** (×3)   | `gdpr_ml`, `gdpr_pc`, `gdpr_cgu`                                                                                                   | 50 pts if the relevant link exists + up to 50 pts for keyword coverage: `len(matches) / (len(matches) + len(missing)) × 50`.                                                                                                                                                                                                                                                   |
-| **Lighthouse**  | `lighthouse_performance`, `lighthouse_accessibility`, `lighthouse_best-practices`, `lighthouse_seo`, `lighthouse_agentic-browsing` | Direct pass-through of Lighthouse category scores × 100.                                                                                                                                                                                                                                                                                                                       |
-| **Observatory** | `observatory`                                                                                                                      | Direct pass-through of `scan.score`.                                                                                                                                                                                                                                                                                                                                           |
-| **Ecoindex**    | `ecoindex`                                                                                                                         | Direct pass-through of the `score` field.                                                                                                                                                                                                                                                                                                                                      |
-| **Tracking**    | `tracking`                                                                                                                         | Name of the first detected analytics tool, or `null` if none found.                                                                                                                                                                                                                                                                                                            |
-
-The `date` field on each entry is set to the scan date from ecoindex, observatory, or tracking data when available, otherwise the current time.
+Sortie : `data/<host>/lighthouse.json`
 
 ---
 
-## Data layout
+### `observatory` — En-têtes HTTP de sécurité (MDN Observatory)
+
+**Entrypoint :** `bash main.sh`  
+**Dépend de :** `@mdn/mdn-http-observatory` (npm)
+
+Exécute `mdn-http-observatory-scan` sur le nom d'hôte et enregistre le résultat.
+
+Sortie : `data/<host>/observatory.json`
+
+---
+
+## Génération du rapport
+
+L'exécution de `python main.py report` lit tous les fichiers JSON situés sous `data/` et produit `data/report.json` — une liste d'entrées par site, chacune contenant un objet `summary`.
+
+### Calcul des scores par indicateur
+
+| Indicateur      | Champ(s)                                                                                                                           | Calcul du score (0–100)                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **errors_404**  | `errors_404`, `errors_404_count`                                                                                                   | `(1 − broken/total) × 100`. `errors_404_count` conserve le nombre brut de liens cassés.                                                                                                                                                                                                                                                                                                                                                                           |
+| **DSFR**        | `dsfr`                                                                                                                             | 50 points pour la présence de `.fr-header__brand`. Jusqu'à 50 points supplémentaires selon l'ancienneté de la version DSFR via une courbe d'atténuation douce (`50 × (1 - (i/N)^{0.8})`, où `i` est l'indice de la version dans la liste triée des versions publiées). 5 points si une version est détectée mais inconnue ou trop ancienne. Les versions DSFR sont récupérées via l'API GitHub et mises en cache dans `data/dsfr_versions.json` pendant 30 jours. |
+| **RGAA**        | `rgaa`                                                                                                                             | Utilise `percentage` s'il est présent. Sinon, s'appuie sur la détection de mots-clés : « totalement conforme » → 100, « partiellement conforme » → 50, « non conforme » → 0.                                                                                                                                                                                                                                                                                      |
+| **RGPD** (×3)   | `gdpr_ml`, `gdpr_pc`, `gdpr_cgu`                                                                                                   | 50 points si le lien correspondant existe + jusqu'à 50 points pour la couverture des mots-clés : `len(matches) / (len(matches) + len(missing)) × 50`.                                                                                                                                                                                                                                                                                                             |
+| **Lighthouse**  | `lighthouse_performance`, `lighthouse_accessibility`, `lighthouse_best-practices`, `lighthouse_seo`, `lighthouse_agentic-browsing` | Transmission directe des scores de catégories Lighthouse × 100.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Observatory** | `observatory`                                                                                                                      | Transmission directe de `scan.score`.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Ecoindex**    | `ecoindex`                                                                                                                         | Transmission directe du champ `score`.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Suivi**       | `tracking`                                                                                                                         | Nom du premier outil d'analyse détecté, ou `null` si aucun n'est trouvé.                                                                                                                                                                                                                                                                                                                                                                                          |
+
+Le champ `date` de chaque entrée est défini à partir de la date d'analyse fournie par ecoindex, observatory ou tracking lorsque disponible, sinon à l'instant courant.
+
+---
+
+## Organisation des données
 
 ```
 data/
@@ -234,6 +245,6 @@ data/
     lighthouse.json
     observatory.json
     screenshot.png
-  dsfr_versions.json   ← cached DSFR release list (refreshed every 30 days)
-  report.json          ← generated by `python main.py report`
+  dsfr_versions.json   ← liste des versions DSFR mises en cache (rafraîchie tous les 30 jours)
+  report.json          ← généré par `python main.py report`
 ```
