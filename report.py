@@ -116,6 +116,7 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     site_summary.summary.errors_404_count = broken_links
                 case "rgaa":
                     score = results.get("percentage")
+                    site_summary.summary.rgaa_percentage = score
                     if score is None and results.get("mention"):
                         mention = results.get("mention", "").lower()
                         if "totalement conforme" in mention:
@@ -127,7 +128,6 @@ def generate_report(data: dict, tools: list, verbose: bool = False) -> None:
                     if not score:
                         score = 0
                     site_summary.summary.rgaa = int(round(score, 0))
-                    site_summary.summary.rgaa_percentage = score
                     site_summary.summary.rgaa_version = results.get("version")
                     site_summary.summary.rgaa_update_date = results.get("update_date")
                 case "dsfr":
