@@ -1,9 +1,9 @@
 {
   "name": "qualiscore",
   "version": "0.1.0",
-  "description": "Run: python cli.py list-tools",
+  "description": "Run: python main.py list",
   "author": "Quentin LIENHARDT",
-  "license": "CC-BY-SA-4.0",
+  "license": "LO-2.0",
   "dependencies": {
     "@mdn/mdn-http-observatory": "^1.6.3",
     "lighthouse": "^13.4.1",
